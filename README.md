@@ -45,3 +45,16 @@ window.BANK = {
 ## 进度存储
 
 进度存在浏览器 `localStorage`（按域名隔离）。本地 `file://` 打开和 Pages 上的进度互不相通，可用「导出 / 导入」迁移。
+
+## 更新题库后重新发布
+
+```powershell
+cd D:\Work\上柜\grind-shuati
+copy ..\备考\刷题助手.html index.html -Force
+copy ..\备考\bank.js bank.js -Force
+git add -A
+git commit -m "update bank"
+git push
+```
+
+推送后 GitHub Pages 约 30 秒自动重建。
