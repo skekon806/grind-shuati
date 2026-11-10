@@ -23,7 +23,11 @@ const LS = {
   banks: "grind_banks_v1",
   bank: id => "grind_bank_" + id,
   prog: id => "grind_prog_" + id,
+  exam: id => "grind_exam_" + id,
 };
+
+const EXAM_SIZE = 100;
+const EXAM_MINUTES = 60;
 
 /* ---------------- 小工具 ---------------- */
 const $app = document.getElementById("app");
@@ -107,6 +111,7 @@ function loadBank(id){
   }));
   PROG = jload(LS.prog(id), null) || { mode: "std", auto: true, g: {}, stats: {} };
   if (!PROG.stats) PROG.stats = {};
+  EXAM = jload(LS.exam(id), null);
   META.active = id; jsave(LS.banks, META);
 }
 function saveProg(){ jsave(LS.prog(BANK.id), PROG); }
@@ -158,6 +163,8 @@ function bump(qid, ok){
 /* ---------------- 会话 ---------------- */
 let SE = null;
 let LAST = null;
+let EXAM = null;
+let ETIMER = null;
 let VIEW = { name: "home" };
 let TQ = null, TR = null;
 function clearT(){ if (TQ){ clearTimeout(TQ); TQ = null; } if (TR){ clearTimeout(TR); TR = null; } }
@@ -177,8 +184,14 @@ function render(){
   else if (VIEW.name === "quiz")   $app.innerHTML = viewQuiz();
   else if (VIEW.name === "result") $app.innerHTML = viewResult();
   else if (VIEW.name === "wrong")  $app.innerHTML = viewWrong();
+  else if (VIEW.name === "exam")   $app.innerHTML = viewExam();
+  else if (VIEW.name === "examcard") $app.innerHTML = viewExamCard();
+  else if (VIEW.name === "examresult") $app.innerHTML = viewExamResult();
   else if (VIEW.name === "import") $app.innerHTML = viewImport(false);
   else if (VIEW.name === "banks")  $app.innerHTML = viewImport(false);
+
+  if (VIEW.name === "exam" && EXAM && !EXAM.submitted) startTimer();
+  else stopTimer();
 }
 
 function bankBar(){
@@ -217,6 +230,24 @@ function viewHome(){
   html += '<div class="sec" data-act="wrong" style="border-color:#f5c2c4">' +
     '<div class="hd"><div class="nm">错题本</div><div class="tag">' + wl + ' 道待清除</div></div>' +
     '<div class="st" style="margin-top:6px">答错自动收录；连续答对 ' + WRONG_CLEAR + ' 次自动移出</div></div>';
+
+  // 模拟考试
+  const ex = EXAM;
+  if (ex && !ex.submitted){
+    const left = Math.max(0, ex.endAt - now());
+    html += '<div class="sec" data-act="examresume" style="border-color:#c9d8fb">' +
+      '<div class="hd"><div class="nm">继续上次模考</div><div class="tag">剩余 ' + fmtClock(left) + '</div></div>' +
+      '<div class="st" style="margin-top:6px">已答 ' + examAnsweredCount() + ' / ' + ex.refs.length + ' 题</div></div>';
+  } else if (ex && ex.submitted){
+    const sc = Math.round((ex.right || 0) / (ex.total || 1) * 100);
+    html += '<div class="sec" data-act="examview" style="border-color:#bfe6d3">' +
+      '<div class="hd"><div class="nm">上次模考成绩</div><div class="tag">' + sc + ' 分</div></div>' +
+      '<div class="st" style="margin-top:6px">答对 ' + (ex.right || 0) + ' / ' + (ex.total || 0) + ' 题，点开看解析</div></div>';
+  } else {
+    html += '<div class="sec" data-act="examstart">' +
+      '<div class="hd"><div class="nm">模拟考试</div><div class="tag">随机 ' + Math.min(EXAM_SIZE, bankTotal()) + ' 题 · ' + EXAM_MINUTES + ' 分钟</div></div>' +
+      '<div class="st" style="margin-top:6px">交卷后才显示答案与成绩</div></div>';
+  }
 
   html += '<div class="settings"><h3>设置</h3>' +
     '<label class="chk"><input type="checkbox" data-act="auto" ' + (autoOn() ? "checked" : "") + '> 答题后自动跳转（对 0.6 秒 / 错 1.4 秒），结果页 1.6 秒后自动继续</label>' +
@@ -543,6 +574,199 @@ function doImport(file){
 }
 
 /* =======================================================================
+ * 模拟考试
+ * ===================================================================== */
+function allRefs(){
+  const out = [];
+  SECS.forEach(s => { const n = qsOf(s).length; for (let i = 0; i < n; i++) out.push({ sec: s, idx: i }); });
+  return out;
+}
+function examSave(){ jsave(LS.exam(BANK.id), EXAM); }
+function examClear(){ try { localStorage.removeItem(LS.exam(BANK.id)); } catch(e){} EXAM = null; }
+
+function startExam(){
+  const pool = allRefs();
+  if (!pool.length){ toast("题库为空"); return; }
+  shuffle(pool);
+  const picked = pool.slice(0, Math.min(EXAM_SIZE, pool.length));
+  EXAM = { refs: picked, ans: {}, startAt: now(), endAt: now() + EXAM_MINUTES * 60000,
+           submitted: false, cur: 0, showAll: false };
+  examSave();
+  go("exam");
+}
+function examResume(){ if (EXAM) go("exam"); }
+
+function stopTimer(){ if (ETIMER){ clearInterval(ETIMER); ETIMER = null; } }
+function startTimer(){
+  stopTimer();
+  if (!EXAM || EXAM.submitted) return;
+  tickClock();
+  ETIMER = setInterval(tickClock, 1000);
+}
+function fmtClock(ms){
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const pad = n => String(n).padStart(2, "0");
+  return h > 0 ? h + ":" + pad(m) + ":" + pad(ss) : pad(m) + ":" + pad(ss);
+}
+function tickClock(){
+  const el = document.getElementById("examClock");
+  if (!EXAM || EXAM.submitted) return;
+  const left = EXAM.endAt - now();
+  if (el){
+    el.textContent = fmtClock(left);
+    el.className = "clock" + (left < 5 * 60000 ? " warn" : "");
+  }
+  if (left <= 0) submitExam(true);
+}
+
+function examAnsweredCount(){
+  if (!EXAM) return 0;
+  return EXAM.refs.reduce((n, _, i) => n + ((EXAM.ans[i] || []).length ? 1 : 0), 0);
+}
+function examPick(i){
+  if (!EXAM || EXAM.submitted) return;
+  const r = EXAM.refs[EXAM.cur];
+  const it = BANK.secs[r.sec].questions[r.idx];
+  const cur = EXAM.ans[EXAM.cur] || [];
+  if (it.t === "multi"){
+    const k = cur.indexOf(i);
+    if (k >= 0) cur.splice(k, 1); else cur.push(i);
+  } else {
+    EXAM.ans[EXAM.cur] = (cur.length === 1 && cur[0] === i) ? [] : [i];
+  }
+  if (it.t === "multi") EXAM.ans[EXAM.cur] = cur;
+  examSave();
+  render();
+}
+function examGoto(i){
+  if (!EXAM) return;
+  EXAM.cur = Math.max(0, Math.min(EXAM.refs.length - 1, i));
+  examSave();
+  go("exam");
+}
+function examCheck(i){
+  const r = EXAM.refs[i];
+  const it = BANK.secs[r.sec].questions[r.idx];
+  const mine = (EXAM.ans[i] || []).slice().sort((a, b) => a - b);
+  const right = it.a.slice().sort((a, b) => a - b);
+  return mine.length === right.length && mine.every((v, k) => v === right[k]);
+}
+function submitExam(auto){
+  if (!EXAM || EXAM.submitted) return;
+  const unanswered = EXAM.refs.length - examAnsweredCount();
+  if (!auto && unanswered > 0 && !confirm("还有 " + unanswered + " 题未作答，确定交卷？")) return;
+  let right = 0;
+  EXAM.refs.forEach((r, i) => {
+    const it = BANK.secs[r.sec].questions[r.idx];
+    if (examCheck(i)) right++;
+    else if ((EXAM.ans[i] || []).length) bump(qhash(it.q), false);   // 只把答错的记入错题本
+  });
+  EXAM.submitted = true;
+  EXAM.usedMs = now() - EXAM.startAt;
+  EXAM.right = right;
+  EXAM.total = EXAM.refs.length;
+  examSave();
+  stopTimer();
+  go("examresult");
+}
+
+function viewExam(){
+  if (!EXAM) return '<div class="empty">没有进行中的模考<br><br><button class="btn" data-act="home">返回首页</button></div>';
+  if (EXAM.submitted) return viewExamResult();
+  const i = EXAM.cur, n = EXAM.refs.length;
+  const r = EXAM.refs[i];
+  const it = BANK.secs[r.sec].questions[r.idx];
+  const sel = EXAM.ans[i] || [];
+  const done = examAnsweredCount();
+  const badge = it.t === "multi" ? '<span class="badge multi">多选</span>' :
+                it.t === "judge" ? '<span class="badge judge">判断</span>' : '<span class="badge">单选</span>';
+
+  let html = '<div class="exambar"><div class="t">第 ' + (i + 1) + ' / ' + n + ' 题</div>' +
+    '<div class="spacer"></div><div class="mini">已答 ' + done + '</div>' +
+    '<div class="clock" id="examClock">--:--</div></div>';
+  html += '<div class="bar small"><i style="width:' + Math.round(done / n * 100) + '%"></i></div>';
+  html += '<div class="qcard" style="margin-top:12px">';
+  html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + badge +
+          '<span class="mini">' + esc(r.sec) + '</span></div>';
+  html += '<p class="stem">' + esc(it.q) + '</p><div class="opts">';
+  it.o.forEach((o, k) => {
+    const cls = "opt" + (sel.indexOf(k) >= 0 ? " sel" : "");
+    const key = it.t === "judge" ? (k === 0 ? "√" : "×") : OPTKEY[k];
+    html += '<div class="' + cls + '" data-act="examopt" data-v="' + k + '"><span class="k">' + key + '</span><span>' + esc(o) + '</span></div>';
+  });
+  html += '</div></div>';
+  html += '<div class="row">' +
+    '<button class="btn ghost" data-act="examprev"' + (i === 0 ? " disabled" : "") + '>上一题</button>' +
+    '<button class="btn ghost" data-act="examcard">答题卡</button>' +
+    '<button class="btn" data-act="examnext"' + (i === n - 1 ? " disabled" : "") + '>下一题</button>' +
+  '</div>';
+  html += '<div class="row"><button class="btn ghost danger" data-act="examsubmit">交卷</button></div>' +
+    '<p class="mini" style="text-align:center;margin-top:10px">交卷后才显示答案与成绩</p>';
+  return html;
+}
+
+function viewExamCard(){
+  if (!EXAM) return '<div class="empty">没有进行中的模考</div>';
+  let html = '<h1>答题卡</h1><p class="sub">已答 ' + examAnsweredCount() + ' / ' + EXAM.refs.length + ' 题，点击题号跳转。</p>';
+  html += '<div class="cardgrid">';
+  EXAM.refs.forEach((r, i) => {
+    const cls = "cn" + ((EXAM.ans[i] || []).length ? " done" : "") + (i === EXAM.cur ? " cur" : "");
+    html += '<div class="' + cls + '" data-act="examjump" data-v="' + i + '">' + (i + 1) + '</div>';
+  });
+  html += '</div><div class="row"><button class="btn" data-act="examback">继续答题</button>' +
+          '<button class="btn ghost danger" data-act="examsubmit">交卷</button></div>';
+  return html;
+}
+
+function viewExamResult(){
+  if (!EXAM || !EXAM.submitted) return '<div class="empty">还没有成绩</div>';
+  const total = EXAM.total || EXAM.refs.length;
+  const right = EXAM.right || 0;
+  const score = Math.round(right / total * 100);
+  const unanswered = total - examAnsweredCount();
+  const wrong = total - right;
+
+  let html = '<div class="res" style="margin-top:16px">' +
+    '<div class="big">' + score + '</div><div class="ttl">分</div>' +
+    '<div class="desc">答对 ' + right + ' / ' + total + ' 题' + (unanswered ? '，未作答 ' + unanswered + ' 题' : '') + '</div>' +
+    '<div class="hr"></div>' +
+    '<div class="kv"><span>用时</span><b>' + fmtClock(EXAM.usedMs || 0) + '</b></div>' +
+    '<div class="kv"><span>错题</span><b style="color:var(--bad)">' + wrong + ' 道（已记入错题本）</b></div>' +
+  '</div>';
+
+  html += '<div class="row">' +
+    '<button class="btn" data-act="examtoggle">' + (EXAM.showAll ? "只看错题" : "查看全部解析") + '</button>' +
+    '<button class="btn ghost" data-act="examagain">再来一次（新题）</button>' +
+    '<button class="btn ghost" data-act="examclose">结束</button></div>';
+
+  const list = [];
+  EXAM.refs.forEach((r, i) => {
+    const ok = examCheck(i);
+    if (!EXAM.showAll && ok) return;
+    const it = BANK.secs[r.sec].questions[r.idx];
+    const mine = EXAM.ans[i] || [];
+    list.push('<div class="rev ' + (ok ? "ok" : "bad") + '">' +
+      '<div class="mini" style="margin-bottom:6px">第 ' + (i + 1) + ' 题 · ' + esc(r.sec) +
+        (ok ? ' <span style="color:var(--ok)">✔</span>' : ' <span style="color:var(--bad)">✘</span>') + '</div>' +
+      '<div style="font-size:14.5px;line-height:1.6">' + esc(it.q) + '</div>' +
+      it.o.map((o, k) => {
+        const isRight = it.a.indexOf(k) >= 0, picked = mine.indexOf(k) >= 0;
+        const color = isRight ? "color:var(--ok);font-weight:600" : (picked ? "color:var(--bad)" : "");
+        const mark = (isRight ? "✔ " : (picked ? "✘ " : "")) + OPTKEY[k] + ". ";
+        return '<div style="font-size:13.5px;margin-top:3px;' + color + '">' + mark + esc(o) + '</div>';
+      }).join('') +
+      '<div class="mini" style="margin-top:6px">你的答案：' + (mine.length ? mine.map(k => OPTKEY[k]).join("") : "未作答") +
+        ' · 正确答案：<b>' + it.a.map(k => OPTKEY[k]).join("") + '</b></div>' +
+    '</div>');
+  });
+  html += '<h2 style="margin-top:18px">' + (EXAM.showAll ? "全部解析" : "错题解析") + '</h2>';
+  html += list.length ? list.join("") : '<div class="empty">全对，没有错题 🎉</div>';
+  return html;
+}
+
+/* =======================================================================
  * 会话控制
  * ===================================================================== */
 function refsOfGroup(sec, gi){
@@ -688,6 +912,22 @@ document.addEventListener("click", function(e){
   if (act === "nextgroup"){ startGroup(SE.sec, +t.dataset.gi, "learn"); return; }
   if (act === "quit"){ if (confirm("退出本组？这一遍的进度不保留。")){ SE = null; LAST = null; go("home"); } return; }
   if (act === "wrong"){ go("wrong"); return; }
+  if (act === "examstart"){
+    if (EXAM && !EXAM.submitted && !confirm("已有未交卷的模考，重新开始会放弃当前进度，确定？")) return;
+    startExam(); return;
+  }
+  if (act === "examresume"){ examResume(); return; }
+  if (act === "examview"){ go("examresult"); return; }
+  if (act === "examopt"){ examPick(+t.dataset.v); return; }
+  if (act === "examprev"){ examGoto(EXAM.cur - 1); return; }
+  if (act === "examnext"){ examGoto(EXAM.cur + 1); return; }
+  if (act === "examcard"){ go("examcard"); return; }
+  if (act === "examback"){ go("exam"); return; }
+  if (act === "examjump"){ examGoto(+t.dataset.v); return; }
+  if (act === "examsubmit"){ submitExam(false); return; }
+  if (act === "examtoggle"){ EXAM.showAll = !EXAM.showAll; examSave(); go("examresult"); return; }
+  if (act === "examagain"){ examClear(); startExam(); return; }
+  if (act === "examclose"){ examClear(); go("home"); return; }
   if (act === "wstart"){ startWrong(); return; }
   if (act === "wfilter"){ WRONG_FILTER = t.dataset.v; render(); return; }
   if (act === "wtoggle"){ t.classList.toggle("open"); return; }
@@ -704,6 +944,7 @@ document.addEventListener("click", function(e){
     if (!confirm("删除这个题库？导入的题和进度都会一起删除。")) return;
     localStorage.removeItem(LS.bank(id));
     localStorage.removeItem(LS.prog(id));
+    localStorage.removeItem(LS.exam(id));
     META.list = META.list.filter(b => b.id !== id);
     if (META.active === id) META.active = META.list[0] ? META.list[0].id : null;
     jsave(LS.banks, META);
@@ -753,6 +994,13 @@ document.addEventListener("drop", function(e){
 document.addEventListener("keydown", function(e){
   const k = e.key;
   const isSpace = (k === " " || k === "Spacebar" || e.code === "Space");
+  if (VIEW.name === "exam"){
+    if (k === "ArrowLeft"){ e.preventDefault(); examGoto(EXAM.cur - 1); return; }
+    if (k === "ArrowRight"){ e.preventDefault(); examGoto(EXAM.cur + 1); return; }
+    const uu = k.toUpperCase();
+    if (KEYMAP[uu] !== undefined){ e.preventDefault(); examPick(KEYMAP[uu]); }
+    return;
+  }
   if (VIEW.name === "result"){
     if (isSpace || k === "Enter"){ e.preventDefault(); clearT(); autoCont(); }
     return;

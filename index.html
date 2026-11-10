@@ -140,6 +140,19 @@ select.sel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font
 .smallbtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:5px 10px;font-size:12.5px;cursor:pointer}
 .smallbtn.on{border-color:var(--pri);color:var(--pri);font-weight:600}
 
+/* 模拟考试 */
+.exambar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:14px 0 8px;box-shadow:var(--shadow)}
+.exambar .t{font-weight:600;font-size:15px}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:19px;color:var(--pri);min-width:66px;text-align:right}
+.clock.warn{color:var(--bad)}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:8px;margin:14px 0}
+.cn{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px;cursor:pointer;color:var(--muted)}
+.cn.done{background:var(--pri-weak);border-color:#c9d8fb;color:var(--pri);font-weight:600}
+.cn.cur{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-weak);color:var(--ink);font-weight:700}
+.rev{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--card);box-shadow:var(--shadow)}
+.rev.ok{border-color:#bfe6d3}
+.rev.bad{border-color:#f5c2c4}
+
 @media (max-width:560px){
   .wrap{padding:0 12px}
   header.top .inner{padding:10px 12px;gap:8px}
