@@ -13,9 +13,12 @@ const PASS_TOTAL = 3;
 const WRONG_CLEAR = 2;                       // 错题连对几次移出
 const IV_STD = [10 * 60e3, 24 * 3600e3, 3 * 24 * 3600e3];
 const IV_FAST = [60e3, 8 * 60e3, 20 * 60e3];
-const OPTKEY = "ABCDEFGHIJKLMN";
-const KEYMAP = { A:0,B:1,C:2,D:3,E:4,F:5,G:6,H:7,I:8,J:9,K:10,L:11,M:12,N:13,
-                 "1":0,"2":1,"3":2,"4":3,"5":4,"6":5,"7":6,"8":7,"9":8,"0":9 };
+const OPTKEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const KEYMAP = (function(){
+  const m = { "1":0,"2":1,"3":2,"4":3,"5":4,"6":5,"7":6,"8":7,"9":8,"0":9 };
+  for (let i = 0; i < 26; i++) m[OPTKEY[i]] = i;
+  return m;
+})();
 const LS = {
   banks: "grind_banks_v1",
   bank: id => "grind_bank_" + id,
@@ -194,7 +197,7 @@ function viewHome(){
   let html = bankBar();
   html += '<h1>选择板块</h1><p class="sub">每组 ' + GSIZE + ' 题，必须全对才算过；组内某题连续答对 ' + PASS_TOTAL +
     ' 次即可跳出重复队列。每组共需完成 ' + PASS_TOTAL + ' 次全对（含首次），间隔按遗忘曲线安排。' +
-    '<span class="kbd"><br><b>键盘：</b>A–K 选选项，<b>空格</b> 确认 / 跳过等待。</span></p>';
+    '<span class="kbd"><br><b>键盘：</b>A–Z 选选项，<b>空格</b> 确认 / 跳过等待。</span></p>';
 
   SECS.forEach(sec => {
     const st = secStats(sec), meta = BANK.secs[sec];
@@ -221,11 +224,9 @@ function viewHome(){
     '<div class="row">' +
       '<button class="btn ghost" data-act="banks">题库管理</button>' +
       '<button class="btn ghost" data-act="import">导入题库</button>' +
-      '<button class="btn ghost" data-act="backup">导出题库+进度</button>' +
-      '<button class="btn ghost" data-act="backupall">备份全部题库</button>' +
       '<button class="btn ghost danger" data-act="reset">清空本库进度</button>' +
     '</div>' +
-    '<p class="mini" style="margin-top:12px">导出的是 .json 备份，含题库本体与进度，换设备/换浏览器可直接拖回来恢复。</p>' +
+    '<p class="mini" style="margin-top:12px">进度按题库分别保存；换设备重新导入同一份题库即可继续（进度不会跟随）。</p>' +
   '</div>';
   return html;
 }
@@ -386,12 +387,10 @@ function viewImport(empty){
   }).join("") : '<div class="mini" style="padding:8px 0">还没有导入任何题库</div>';
 
   let html = '<h1>' + (empty ? "导入题库开始刷题" : "题库管理") + '</h1>';
-  html += '<p class="sub">支持 .xlsx / .xls / .csv 题库，以及本工具导出的 .json 备份（题库+进度）。' +
-          '至少需要「题目」「答案」两列，选项列写成「选项A…选项G」；判断题选项可用 正确/错误。</p>';
+  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列，选项列写成「选项A…选项Z」；判断题选项可用 正确/错误。</p>';
   html += '<div class="drop" data-act="pick"><div class="big">📥</div><div class="t">点击选择文件，或把文件拖到这里</div>' +
-          '<div class="s">支持 xlsx / xls / csv / json 备份 · 解析在本地完成，文件不会上传</div></div>';
+          '<div class="s">支持 xlsx / xls / csv · 解析在本地完成，文件不会上传</div></div>';
   html += '<div id="impReport" class="report">' + IMP_REPORT + '</div>';
-  html += '<div class="row"><button class="btn ghost" data-act="backupall">备份全部题库</button></div>';
   html += '<h2>已有题库</h2><div class="gbox">' + banks + '</div>';
   if (!empty) html += '<div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>';
   return html;
@@ -457,14 +456,14 @@ function buildMap(header){
     if (m.ans < 0 && /^(答案|正确答案)/.test(h)) { m.ans = i; return; }
     if (m.type < 0 && /^题型/.test(h)) { m.type = i; return; }
     if (m.sec < 0 && /(题库|分类|模块|类别|章节|科目)/.test(h)) { m.sec = i; return; }
-    const lm = h.match(/^选项\s*([A-N])/i) || h.match(/^([A-N])$/i) || h.match(/^([A-N])[\.、]/i);
+    const lm = h.match(/^选项\s*([A-Z])/i) || h.match(/^([A-Z])$/i) || h.match(/^([A-Z])[\.、]/i);
     if (lm) m.opts.push({ i, letter: lm[1].toUpperCase() });
   });
   // 没有字母选项列时，把「答案」之后未使用的列当作 A/B/C…
   if (!m.opts.length){
     const used = new Set([m.q, m.ans, m.type, m.sec]);
     let L = 0;
-    for (let i = 0; i < header.length && L < 8; i++){
+    for (let i = 0; i < header.length && L < 26; i++){
       if (used.has(i) || !header[i]) continue;
       m.opts.push({ i, letter: OPTKEY[L++] });
     }
@@ -480,7 +479,7 @@ function parseAnswer(raw, pairs){
   if (/^(正确|对|是|√|✓|T|TRUE|Y|YES)$/i.test(s)) return [0];
   if (/^(错误|错|否|×|✗|F|FALSE|N|NO)$/i.test(s)) return [1];
   // 字母答案 A / A,B,C / A、B
-  const letters = (s.toUpperCase().match(/[A-N]/g) || []);
+  const letters = (s.toUpperCase().match(/[A-Z]/g) || []);
   if (letters.length){
     const idx = [];
     letters.forEach(L => {
@@ -496,7 +495,6 @@ function parseAnswer(raw, pairs){
 
 function doImport(file){
   if (!file) return;
-  if (/\.json$/i.test(file.name)){ readBackup(file); return; }
   if (!window.XLSX){
     document.getElementById("impReport").innerHTML = '<div class="bad">解析库没加载成功（vendor/xlsx.full.min.js）</div>';
     return;
@@ -542,82 +540,6 @@ function doImport(file){
     }
   };
   reader.readAsArrayBuffer(file);
-}
-
-/* =======================================================================
- * 备份：题库 + 进度
- * ===================================================================== */
-function exportBackup(){
-  if (!BANK) return;
-  const payload = {
-    type: "grind-backup",
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    bank: { name: BANK.name, secs: BANK.secs },
-    prog: PROG,
-  };
-  download(JSON.stringify(payload), "题库_" + safeName(BANK.name) + "_" + todayStr() + ".json");
-  toast("已导出：题库 + 进度");
-}
-
-function exportAll(){
-  const banks = META.list.map(m => ({
-    name: m.name,
-    at: m.at,
-    data: jload(LS.bank(m.id), null),
-    prog: jload(LS.prog(m.id), null),
-  })).filter(x => x.data);
-  if (!banks.length){ toast("没有可导出的题库"); return; }
-  download(JSON.stringify({ type: "grind-backup-all", version: 1, exportedAt: new Date().toISOString(), banks }),
-    "刷题全部备份_" + todayStr() + ".json");
-  toast("已导出 " + banks.length + " 个题库");
-}
-
-function restoreOne(name, secs, prog){
-  const id = "u" + now().toString(36);
-  if (!jsave(LS.bank(id), { secs: secs, at: now() })) return null;
-  let nm = name || "恢复的题库";
-  if (META.list.some(b => b.name === nm)) nm += "（恢复）";
-  META.list.push({ id: id, name: nm, count: countQ(secs), at: now() });
-  META.active = id;
-  jsave(LS.banks, META);
-  if (prog) jsave(LS.prog(id), prog);
-  return { id: id, name: nm, count: countQ(secs) };
-}
-
-function readBackup(file){
-  const r = new FileReader();
-  r.onload = function(){
-    try{
-      const o = JSON.parse(r.result);
-      if (o && o.type === "grind-backup" && o.bank && o.bank.secs){
-        const done = restoreOne(o.bank.name, o.bank.secs, o.prog);
-        if (!done) return;
-        const st = o.prog && o.prog.stats ? Object.keys(o.prog.stats).length : 0;
-        IMP_REPORT = '<div class="ok">✔ 已恢复题库：<b>' + esc(done.name) + '</b>，' + done.count + ' 题</div>' +
-          '<div class="mini" style="margin-top:6px">进度记录 ' + st + ' 条' + (o.exportedAt ? " · 备份时间 " + new Date(o.exportedAt).toLocaleString() : "") + '</div>' +
-          '<div class="row"><button class="btn" data-act="use" data-id="' + esc(done.id) + '">开始刷这套题</button></div>';
-        render();
-        toast("恢复成功");
-        return;
-      }
-      if (o && o.type === "grind-backup-all" && Array.isArray(o.banks)){
-        let ok = 0, n = 0;
-        o.banks.forEach(b => { n++; if (b.data && b.data.secs && restoreOne(b.name, b.data.secs, b.prog)) ok++; });
-        const first = META.list[META.list.length - 1];
-        IMP_REPORT = '<div class="ok">✔ 已恢复 <b>' + ok + '/' + n + '</b> 个题库</div>' +
-          '<div class="row"><button class="btn" data-act="use" data-id="' + esc(first ? first.id : "") + '">开始使用</button></div>';
-        render();
-        toast("恢复 " + ok + " 个题库");
-        return;
-      }
-      throw new Error("不是本工具的备份文件");
-    }catch(err){
-      IMP_REPORT = '<div class="bad">恢复失败：' + esc(err.message) + '</div>';
-      render();
-    }
-  };
-  r.readAsText(file, "utf-8");
 }
 
 /* =======================================================================
@@ -792,12 +714,10 @@ document.addEventListener("click", function(e){
   }
   if (act === "pick"){
     const inp = document.createElement("input");
-    inp.type = "file"; inp.accept = ".xlsx,.xls,.csv,.json";
+    inp.type = "file"; inp.accept = ".xlsx,.xls,.csv";
     inp.onchange = () => doImport(inp.files[0]);
     inp.click(); return;
   }
-  if (act === "backup"){ exportBackup(); return; }
-  if (act === "backupall"){ exportAll(); return; }
   if (act === "reset"){
     if (!confirm("清空当前题库的进度和错题本？不可恢复。")) return;
     PROG = { mode: PROG.mode, auto: PROG.auto, g: {}, stats: {} };
