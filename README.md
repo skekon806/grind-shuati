@@ -61,9 +61,18 @@
 
 ```
 index.html                界面与样式
-app.js                    全部逻辑（题库管理 / 刷题 / 错题本 / 导入解析）
+js/
+  core.js                 常量、存储、题库与进度模型
+  importer.js             Excel/CSV 解析与导入页
+  quiz.js                 分组闯关、遗忘曲线、答题页
+  exam.js                 模拟考试（100题/60分钟/成绩历史）
+  wrong.js                错题本
+  ui.js                   路由、首页、事件与启动
 vendor/xlsx.full.min.js   SheetJS，用于解析 xls/xlsx
 ```
+
+采用**经典脚本按顺序加载**（不是 ES Module），这样本地双击 `index.html`（file://）也能正常工作。
+加载顺序见 `index.html`：core → importer → exam → quiz → wrong → ui。
 
 ## 数据与迁移
 

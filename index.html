@@ -102,10 +102,10 @@ button.btn.danger{background:#fff;color:var(--bad);border:1px solid #f5c2c4}
 .hr{height:1px;background:var(--line);margin:16px 0}
 
 /* 题库条 */
-.bankbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:16px 0 4px;box-shadow:var(--shadow)}
+.bankbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 12px;margin:16px 0 4px;box-shadow:var(--shadow)}
 .bankbar .nm{font-weight:600;font-size:14.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bankbar .cnt{font-size:12px;color:var(--muted)}
-select.sel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px;background:#fff;color:var(--ink);max-width:100%}
+.bankbar .cnt{font-size:12px;color:var(--muted);white-space:nowrap}
+select.sel{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14.5px;background:#fff;color:var(--ink)}
 
 /* 错题本 */
 .wq{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
@@ -172,6 +172,16 @@ select.sel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font
   .toast{font-size:13px;bottom:16px;max-width:88vw;text-align:center}
   .statgrid{grid-template-columns:repeat(3,1fr);gap:8px}
   .statgrid .c{padding:10px 6px} .statgrid .c .v{font-size:19px}
+  .exambar{padding:8px 12px;gap:8px;margin:12px 0 6px}
+  .exambar .t{font-size:14px}
+  .clock{font-size:17px;min-width:56px}
+  .cardgrid{grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+  .cn{font-size:13px;border-radius:9px}
+  .rev{padding:10px 12px}
+  .qhead{gap:8px}
+  .qhead .iconbtn{padding:6px 9px;font-size:12px}
+  .bankbar{padding:7px 10px}
+  select.sel{padding:8px 9px;font-size:14px}
 }
 @media (max-width:380px){
   .sec .st span:nth-child(2){display:none}
@@ -192,6 +202,11 @@ select.sel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font
 <div class="toast" id="toast"></div>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="app.js"></script>
+<script src="js/core.js"></script>
+<script src="js/importer.js"></script>
+<script src="js/exam.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/wrong.js"></script>
+<script src="js/ui.js"></script>
 </body>
 </html>
