@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2f6fed">
-<title>客服助理 · 刷题助手</title>
+<title>刷题助手 · Grind</title>
 <style>
 :root{
   --bg:#f4f6f9; --card:#fff; --ink:#1b2230; --muted:#7b8496; --line:#e5e9f0;
@@ -14,32 +14,26 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   background:var(--bg); color:var(--ink);
   font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   padding-bottom:calc(28px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:contain;
 }
 .wrap{max-width:760px;margin:0 auto;padding:0 16px}
-header.top{
-  position:sticky;top:0;z-index:20;background:rgba(244,246,249,.92);
-  backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line);
-}
+header.top{position:sticky;top:0;z-index:20;background:rgba(244,246,249,.92);backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line)}
 header.top .inner{max-width:760px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}
-.brand{font-weight:700;letter-spacing:.2px}
+.brand{font-weight:700;letter-spacing:.2px;white-space:nowrap}
 .brand small{font-weight:500;color:var(--muted);margin-left:6px;font-size:12px}
 .spacer{flex:1}
-.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:13px;color:var(--ink);cursor:pointer}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 11px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap}
 .iconbtn:hover{border-color:#c9d2e0}
 h1{font-size:20px;margin:22px 0 6px}
 h2{font-size:16px;margin:22px 0 10px;color:#485064}
 p.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
 
-/* ---------- home ---------- */
-.sec{
-  background:var(--card);border:1px solid var(--line);border-radius:16px;
-  padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;
-  transition:transform .12s ease,box-shadow .12s ease;
-}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s ease}
 .sec:active{transform:scale(.995)}
 .sec .hd{display:flex;align-items:center;gap:10px}
 .sec .nm{font-weight:700;font-size:17px}
@@ -47,77 +41,55 @@ p.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
 .bar{height:8px;border-radius:99px;background:#eef1f6;overflow:hidden;margin:12px 0 8px}
 .bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5b8cf7,#2f6fed);transition:width .4s ease}
 .bar.small{height:6px;margin:10px 0 4px}
+.bar.warn>i{background:linear-gradient(90deg,#f0b24a,#e05a2b)}
 .sec .st{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
 .sec .st b{color:var(--ink);font-weight:600}
 .dotb{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:1px}
 .d-mastered{background:var(--ok)} .d-due{background:var(--bad)} .d-learn{background:var(--pri)} .d-new{background:#cfd6e2}
 
-/* ---------- groups grid ---------- */
 .gbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px}
-.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin-top:10px}
-.gc{
-  border:1px solid var(--line);background:#fbfcfe;border-radius:12px;padding:9px 6px;text-align:center;
-  cursor:pointer;font-size:12.5px;color:var(--muted);line-height:1.35;
-}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:10px}
+.gc{border:1px solid var(--line);background:#fbfcfe;border-radius:12px;padding:9px 6px;text-align:center;cursor:pointer;font-size:12.5px;color:var(--muted);line-height:1.35}
 .gc b{display:block;font-size:14px;color:var(--ink)}
-.gc.due{border-color:#f5c2c4;background:var(--bad-weak)}
-.gc.due b{color:var(--bad)}
-.gc.learn{border-color:#c9d8fb;background:var(--pri-weak)}
-.gc.learn b{color:var(--pri)}
-.gc.mastered{border-color:#bfe6d3;background:var(--ok-weak)}
-.gc.mastered b{color:var(--ok)}
+.gc.due{border-color:#f5c2c4;background:var(--bad-weak)} .gc.due b{color:var(--bad)}
+.gc.learn{border-color:#c9d8fb;background:var(--pri-weak)} .gc.learn b{color:var(--pri)}
+.gc.mastered{border-color:#bfe6d3;background:var(--ok-weak)} .gc.mastered b{color:var(--ok)}
 
-/* ---------- quiz ---------- */
 .qhead{display:flex;align-items:center;gap:10px;margin:14px 0 6px}
 .qhead .t{font-size:13px;color:var(--muted)}
-.qhead .badge{
-  font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--pri-weak);color:var(--pri);font-weight:600
-}
+.badge{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--pri-weak);color:var(--pri);font-weight:600}
+.badge.judge{background:var(--warn-weak);color:var(--warn)}
+.badge.multi{background:#efe8ff;color:#6b46c1}
 .qcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
 .stem{font-size:17px;line-height:1.7;margin:0 0 16px;white-space:pre-wrap}
 .opts{display:flex;flex-direction:column;gap:9px}
-.opt{
-  display:flex;gap:11px;align-items:flex-start;border:1.5px solid var(--line);background:#fff;
-  border-radius:12px;padding:12px 13px;cursor:pointer;transition:.12s;font-size:15.5px;line-height:1.5;
-}
+.opt{display:flex;gap:11px;align-items:flex-start;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 13px;cursor:pointer;transition:.12s;font-size:15.5px;line-height:1.5;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .opt:hover{border-color:#c6d4f0;background:#fafcff}
-.opt .k{
-  flex:0 0 24px;height:24px;border-radius:7px;background:#f0f3f8;color:var(--muted);
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-top:1px
-}
-.opt.sel{border-color:var(--pri);background:var(--pri-weak)}
-.opt.sel .k{background:var(--pri);color:#fff}
-.opt.right{border-color:var(--ok);background:var(--ok-weak)}
-.opt.right .k{background:var(--ok);color:#fff}
-.opt.wrong{border-color:var(--bad);background:var(--bad-weak)}
-.opt.wrong .k{background:var(--bad);color:#fff}
+.opt .k{flex:0 0 24px;height:24px;border-radius:7px;background:#f0f3f8;color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-top:1px}
+.opt.sel{border-color:var(--pri);background:var(--pri-weak)} .opt.sel .k{background:var(--pri);color:#fff}
+.opt.right{border-color:var(--ok);background:var(--ok-weak)} .opt.right .k{background:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-weak)} .opt.wrong .k{background:var(--bad);color:#fff}
 .opt.dim{opacity:.62}
 .actions{display:flex;gap:10px;margin-top:14px}
-button.btn{
-  flex:1;border:0;border-radius:12px;padding:13px 16px;font-size:15.5px;font-weight:600;cursor:pointer;
-  background:var(--pri);color:#fff;transition:.12s
-}
+button.btn{flex:1;border:0;border-radius:12px;padding:13px 16px;font-size:15.5px;font-weight:600;cursor:pointer;background:var(--pri);color:#fff;transition:.12s;touch-action:manipulation}
 button.btn:disabled{background:#c8d3e6;cursor:not-allowed}
 button.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
 button.btn.ok{background:var(--ok)}
+button.btn.danger{background:#fff;color:var(--bad);border:1px solid #f5c2c4}
 .fb{margin-top:14px;border-radius:12px;padding:12px 14px;font-size:14.5px;display:none}
 .fb.show{display:block}
 .fb.good{background:var(--ok-weak);color:#0b6b44;border:1px solid #bfe6d3}
 .fb.bad{background:var(--bad-weak);color:#a5262b;border:1px solid #f5c2c4}
-.fb .ans{font-weight:700}
-.fb .src{color:var(--muted);font-size:12.5px;margin-top:4px}
+.fb .ans{font-weight:700} .fb .src{color:var(--muted);font-size:12.5px;margin-top:4px}
 
-/* ---------- result ---------- */
 .res{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow);text-align:center;margin-top:20px}
 .res .big{font-size:40px;line-height:1}
 .res .ttl{font-size:19px;font-weight:700;margin:10px 0 4px}
 .res .desc{color:var(--muted);font-size:14px}
 .kv{display:flex;justify-content:space-between;padding:10px 2px;border-bottom:1px dashed var(--line);font-size:14.5px}
 .kv:last-child{border-bottom:0}
-.kv span{color:var(--muted)}
-.kv b{font-weight:600}
+.kv span{color:var(--muted)} .kv b{font-weight:600}
 
-/* ---------- misc ---------- */
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .mini{font-size:12.5px;color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px}
@@ -125,590 +97,89 @@ button.btn.ok{background:var(--ok)}
 .settings h3{margin:0 0 10px;font-size:14px;color:#485064}
 .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:#3d4658;cursor:pointer;margin:8px 0}
 .chk input{width:17px;height:17px;accent-color:var(--pri)}
-.danger{color:var(--bad);border-color:#f5c2c4}
-.toast{
-  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);
-  background:#1b2230;color:#fff;padding:10px 16px;border-radius:99px;font-size:13.5px;opacity:0;
-  transition:.25s;pointer-events:none;z-index:99
-}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:#1b2230;color:#fff;padding:10px 16px;border-radius:99px;font-size:13.5px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
 .toast.show{opacity:1;transform:translateX(-50%)}
 .hr{height:1px;background:var(--line);margin:16px 0}
 
-/* ---------- 触屏基础优化 ---------- */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{overscroll-behavior-y:contain}
-.opt,.gc,.btn,.iconbtn,.chk{touch-action:manipulation}
-.opt{-webkit-user-select:none;user-select:none}
-button.btn:active{transform:scale(.985)}
-.opt:active{transform:scale(.995)}
+/* 题库条 */
+.bankbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:16px 0 4px;box-shadow:var(--shadow)}
+.bankbar .nm{font-weight:600;font-size:14.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bankbar .cnt{font-size:12px;color:var(--muted)}
+select.sel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px;background:#fff;color:var(--ink);max-width:100%}
 
-/* ---------- 移动端 ---------- */
+/* 错题本 */
+.wq{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.wq .h{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.wq .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:#f0f3f8;color:var(--muted)}
+.wq .tag.n{background:var(--bad-weak);color:var(--bad);font-weight:600}
+.wq .q{font-size:14.5px;line-height:1.6}
+.wq .a{font-size:13px;color:var(--ok);margin-top:6px;display:none}
+.wq.open .a{display:block}
+.wq .a b{color:#0b6b44}
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.statgrid .c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--shadow)}
+.statgrid .c .v{font-size:22px;font-weight:700}
+.statgrid .c .l{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+
+/* 导入 */
+.drop{border:2px dashed #c9d2e0;border-radius:16px;padding:28px 16px;text-align:center;background:#fbfcfe;cursor:pointer;transition:.15s}
+.drop.hover{border-color:var(--pri);background:var(--pri-weak)}
+.drop .big{font-size:30px}
+.drop .t{font-weight:600;margin-top:8px}
+.drop .s{font-size:12.5px;color:var(--muted);margin-top:4px}
+.report{margin-top:14px;font-size:13.5px}
+.report .ok{color:var(--ok)} .report .bad{color:var(--bad)}
+.bankitem{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line)}
+.bankitem:last-child{border-bottom:0}
+.bankitem .nm{font-weight:600;font-size:14.5px}
+.bankitem .meta{font-size:12px;color:var(--muted)}
+.bankitem .act{margin-left:auto;display:flex;gap:6px}
+.smallbtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:5px 10px;font-size:12.5px;cursor:pointer}
+.smallbtn.on{border-color:var(--pri);color:var(--pri);font-weight:600}
+
 @media (max-width:560px){
   .wrap{padding:0 12px}
   header.top .inner{padding:10px 12px;gap:8px}
-  .brand{font-size:15px}
-  .brand small{display:none}
+  .brand{font-size:15px} .brand small{display:none}
   h1{font-size:18px;margin:16px 0 6px}
   p.sub{font-size:12.5px;margin-bottom:12px;line-height:1.6}
-  .sec{padding:12px 13px;border-radius:14px}
-  .sec .nm{font-size:16px}
-  .sec .tag{font-size:11px}
-  .sec .st{gap:10px;font-size:11.5px}
+  .sec{padding:12px 13px;border-radius:14px} .sec .nm{font-size:16px} .sec .tag{font-size:11px} .sec .st{gap:10px;font-size:11.5px}
   .ggrid{grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:7px}
   .gc{padding:8px 4px;font-size:11.5px;min-height:56px;display:flex;flex-direction:column;justify-content:center}
-  .gc b{font-size:12.5px;margin-top:2px}
-  .qhead{margin:10px 0 4px;font-size:12px}
-  .qhead .t{font-size:12px}
-  .qcard{padding:14px;border-radius:14px}
-  .stem{font-size:16px;line-height:1.65;margin-bottom:14px}
-  .opts{gap:8px}
+  .qcard{padding:14px;border-radius:14px} .stem{font-size:16px;line-height:1.65;margin-bottom:14px}
   .opt{padding:12px 11px;font-size:15px;min-height:50px;border-radius:11px}
-  .opt .k{flex:0 0 22px;height:22px;font-size:12px;border-radius:6px}
-  .actions{margin-top:12px}
   button.btn{padding:14px 12px;font-size:16px;min-height:50px}
-  .row{gap:8px;margin-top:12px}
   .row .btn{flex:1 1 100%}
-  .settings{padding:12px 13px;border-radius:14px}
-  .chk{font-size:13px;line-height:1.5;align-items:flex-start;margin:10px 0}
-  .chk input{margin-top:2px;flex:0 0 17px}
-  .res{padding:18px 14px;border-radius:14px;margin-top:14px}
-  .res .big{font-size:34px}
-  .res .ttl{font-size:17px}
-  .res .desc{font-size:13px}
-  .kv{font-size:13.5px;padding:9px 2px}
+  .settings,.bankbar{padding:12px 13px;border-radius:14px}
+  .chk{font-size:13px;line-height:1.5;align-items:flex-start}
+  .res{padding:18px 14px} .res .big{font-size:34px}
   .toast{font-size:13px;bottom:16px;max-width:88vw;text-align:center}
+  .statgrid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .statgrid .c{padding:10px 6px} .statgrid .c .v{font-size:19px}
 }
 @media (max-width:380px){
   .sec .st span:nth-child(2){display:none}
   .ggrid{grid-template-columns:repeat(3,1fr)}
-  .stem{font-size:15.5px}
-  .opt{font-size:14.5px}
+  .stem{font-size:15.5px} .opt{font-size:14.5px}
+  .statgrid{grid-template-columns:repeat(3,1fr)}
 }
-/* 触屏设备不显示键盘提示 */
-@media (hover:none),(pointer:coarse){
-  .kbd{display:none}
-}
+@media (hover:none),(pointer:coarse){ .kbd{display:none} }
 </style>
 </head>
 <body>
 <header class="top"><div class="inner">
-  <div class="brand">客服助理 · 刷题助手<small id="hdrSub"></small></div>
+  <div class="brand">刷题助手<small id="hdrSub"></small></div>
   <div class="spacer"></div>
   <button class="iconbtn" data-act="home">首页</button>
 </div></header>
 <div class="wrap" id="app"></div>
 <div class="toast" id="toast"></div>
 
+<script src="vendor/xlsx.full.min.js"></script>
 <script src="bank.js"></script>
-<script>
-"use strict";
-/* ===================== 常量 ===================== */
-const BANK = window.BANK;
-const SECS = BANK && BANK.secs;
-const SECTIONS = SECS ? Object.keys(SECS) : [];
-const Q = {}; SECTIONS.forEach(s => Q[s] = (SECS[s].questions || []));
-const WEIGHT = {}; SECTIONS.forEach(s => WEIGHT[s] = SECS[s].weight || 0);
-const SHORT = {"运营管理":"运营","零售":"零售","公司金融":"公司金融","零售信贷":"零售信贷","反洗钱及安保":"反洗钱及安保"};
-function shortName(s){ return SHORT[s] || s; }
-const GSIZE = 10;          // 10 题一组
-const PASS_TOTAL = 3;      // 每组需完成 3 次全对
-const IV_STD  = [10*60*1000, 24*3600*1000, 3*24*3600*1000];   // 10分钟 / 1天 / 3天
-const IV_FAST = [60*1000, 8*60*1000, 20*60*1000];             // 1分钟 / 8分钟 / 20分钟
-const LSKEY = "kfzl_quiz_v1";
-
-/* ===================== 数据 ===================== */
-// 题库由 bank.js 提供（window.BANK.secs[板块].questions），本文件不含题目
-
-/* ===================== 状态 ===================== */
-function freshDB(){ return {v:1, mode:"std", auto:true, g:{}, wrong:{}}; }
-let DB = freshDB();
-try{ const raw = localStorage.getItem(LSKEY); if(raw){ const o = JSON.parse(raw); if(o && o.v===1) DB = o; } }catch(e){}
-function save(){ try{ localStorage.setItem(LSKEY, JSON.stringify(DB)); }catch(e){} }
-function IV(){ return DB.mode === "fast" ? IV_FAST : IV_STD; }
-function now(){ return Date.now(); }
-function autoOn(){ return DB.auto !== false; }
-const OPTKEY = "ABCDEFGHIJK";
-const KEYMAP = {"A":0,"B":1,"C":2,"D":3,"E":4,"F":5,"G":6,"H":7,"I":8,"J":9,"K":10,
-                "1":0,"2":1,"3":2,"4":3,"5":4,"6":5,"7":6,"8":7,"9":8,"0":9};
-
-/* 自动跳转用的定时器 */
-let TQ = null, TR = null;
-function clearT(){
-  if(TQ){ clearTimeout(TQ); TQ = null; }
-  if(TR){ clearTimeout(TR); TR = null; }
-}
-
-function gkey(sec, gi){ return sec + "#" + gi; }
-function gst(sec, gi){
-  const k = gkey(sec, gi);
-  if(!DB.g[k]) DB.g[k] = {stage:0, due:0, lapses:0};
-  return DB.g[k];
-}
-function nGroups(sec){ return Math.max(1, Math.ceil(Q[sec].length / GSIZE)); }
-function groupIdx(sec, gi){
-  const out = [];
-  const base = gi * GSIZE, end = Math.min(base + GSIZE, Q[sec].length);
-  for(let i = base; i < end; i++) out.push(i);
-  return out;
-}
-function secStats(sec){
-  const n = nGroups(sec);
-  let mastered = 0, learning = 0, due = 0;
-  const t = now();
-  for(let gi = 0; gi < n; gi++){
-    const st = DB.g[gkey(sec, gi)];
-    const stage = st ? st.stage : 0;
-    if(stage >= PASS_TOTAL) mastered++;
-    else if(stage > 0){ learning++; if(st && st.due && st.due <= t) due++; }
-  }
-  return {n, mastered, learning, due};
-}
-function totalWrong(){ return Object.keys(DB.wrong).length; }
-
-/* ===================== 工具 ===================== */
-const $app = document.getElementById("app");
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
-function toast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 1500);
-}
-function fmtGap(ms){
-  if(ms <= 0) return "现在";
-  const m = Math.round(ms / 60000);
-  if(m < 60) return m + " 分钟";
-  const h = Math.round(m / 60);
-  if(h < 24) return h + " 小时";
-  return Math.round(h / 24) + " 天";
-}
-function todayStr(){
-  const d = new Date();
-  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-}
-
-/* ===================== 视图 ===================== */
-let VIEW = {name:"home"};
-let SE = null;            // 当前答题会话
-let LAST = null;          // 上一题结果，用于渲染反馈
-
-function go(name, payload){ clearT(); VIEW = Object.assign({name:name}, payload || {}); render(); window.scrollTo({top:0}); }
-
-function render(){
-  if(!SECS){
-    document.getElementById("hdrSub").textContent = "";
-    $app.innerHTML = '<div class="empty">没有加载到题库 <b>bank.js</b><br><br>请确认 <b>bank.js</b> 与 <b>刷题助手.html</b> 在同一个文件夹里。</div>';
-    return;
-  }
-  document.getElementById("hdrSub").textContent = " 共 " + SECTIONS.reduce((n, s) => n + Q[s].length, 0) + " 题";
-  if(VIEW.name === "home")        $app.innerHTML = viewHome();
-  else if(VIEW.name === "groups") $app.innerHTML = viewGroups(VIEW.sec);
-  else if(VIEW.name === "quiz")   $app.innerHTML = viewQuiz();
-  else if(VIEW.name === "result") $app.innerHTML = viewResult();
-  else if(VIEW.name === "wrong")  $app.innerHTML = viewWrong();
-}
-
-/* ---------- 首页 ---------- */
-function viewHome(){
-  let html = '<h1>选择板块</h1><p class="sub">每组 ' + GSIZE + ' 题，必须全对才算过；组内某题连续答对 ' + PASS_TOTAL + ' 次即可跳出重复队列。每组共需完成 ' + PASS_TOTAL + ' 次全对（含首次），间隔按遗忘曲线安排。<span class="kbd"><br><b>键盘：</b>A–K 选选项，<b>空格</b> 确认 / 跳过等待。</span>答完自动下一题，本组结束自动继续或重做。</p>';
-  SECTIONS.forEach(sec => {
-    const st = secStats(sec), total = Q[sec].length;
-    const pct = st.n ? Math.round(st.mastered / st.n * 100) : 0;
-    html += '<div class="sec" data-act="open" data-sec="' + esc(sec) + '">' +
-      '<div class="hd"><div class="nm">' + esc(shortName(sec)) + '</div>' +
-      '<div class="tag">' + total + ' 题 · ' + st.n + ' 组 · 占分 ' + WEIGHT[sec] + '%</div></div>' +
-      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="st">' +
-        '<span><i class="dotb d-mastered"></i>已掌握 <b>' + st.mastered + '</b>/' + st.n + ' 组</span>' +
-        '<span><i class="dotb d-learn"></i>进行中 <b>' + st.learning + '</b></span>' +
-        '<span><i class="dotb d-due"></i>待复习 <b>' + st.due + '</b></span>' +
-      '</div></div>';
-  });
-  const w = totalWrong();
-  html += '<div class="settings"><h3>设置</h3>' +
-    '<label class="chk"><input type="checkbox" data-act="auto" ' + (autoOn() ? "checked" : "") + '> 答题后自动跳转（对 0.6 秒 / 错 1.4 秒），结果页 1.6 秒后自动继续</label>' +
-    '<label class="chk"><input type="checkbox" data-act="mode" ' + (DB.mode === "fast" ? "checked" : "") + '> 冲刺模式：复习间隔缩短为 1 分钟 / 8 分钟 / 20 分钟（默认 10 分钟 / 1 天 / 3 天）</label>' +
-    '<div class="row">' +
-      '<button class="btn ghost" data-act="wrong">错题本（' + w + '）</button>' +
-      '<button class="btn ghost" data-act="export">导出进度</button>' +
-      '<button class="btn ghost" data-act="import">导入进度</button>' +
-      '<button class="btn ghost danger" data-act="reset">清空全部进度</button>' +
-    '</div>' +
-    '<p class="mini" style="margin-top:12px">进度保存在本机浏览器（localStorage），换设备用“导出/导入”迁移。</p>' +
-  '</div>';
-  return html;
-}
-
-/* ---------- 组列表 ---------- */
-function viewGroups(sec){
-  const st = secStats(sec);
-  let html = '<h1>' + esc(shortName(sec)) + '</h1>' +
-    '<p class="sub">' + Q[sec].length + ' 题 / ' + st.n + ' 组 · 已掌握 ' + st.mastered + ' 组 · 待复习 ' + st.due + ' 组</p>' +
-    '<div class="gbox"><div class="st" style="display:flex;gap:14px;font-size:12.5px;color:var(--muted)">' +
-      '<span><i class="dotb d-new"></i>未开始</span><span><i class="dotb d-learn"></i>进行中</span>' +
-      '<span><i class="dotb d-due"></i>可复习</span><span><i class="dotb d-mastered"></i>已掌握</span></div>' +
-    '<div class="ggrid">';
-  const t = now();
-  for(let gi = 0; gi < st.n; gi++){
-    const g = DB.g[gkey(sec, gi)];
-    const stage = g ? g.stage : 0;
-    let cls = "", label = "未开始";
-    if(stage >= PASS_TOTAL){ cls = "mastered"; label = "已掌握"; }
-    else if(stage > 0){
-      if(g.due && g.due <= t){ cls = "due"; label = "可复习 " + stage + "/" + PASS_TOTAL; }
-      else { cls = "learn"; label = "第 " + (stage + 1) + " 次"; }
-    }
-    html += '<div class="gc ' + cls + '" data-act="gstart" data-sec="' + esc(sec) + '" data-gi="' + gi + '">' +
-              '第 ' + (gi + 1) + ' 组<b>' + label + '</b></div>';
-  }
-  html += '</div></div>';
-  html += '<div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>';
-  return html;
-}
-
-/* ---------- 错题本 ---------- */
-function viewWrong(){
-  const ids = Object.keys(DB.wrong);
-  let html = '<h1>错题本</h1><p class="sub">共 ' + ids.length + ' 道曾答错的题。每次 10 题，答对即移出。</p>';
-  if(!ids.length){ return html + '<div class="empty">还没有错题，保持住 👍</div><div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>'; }
-  html += '<div class="gbox"><div class="ggrid">';
-  const n = Math.ceil(ids.length / GSIZE);
-  for(let i = 0; i < n; i++){
-    const cnt = Math.min(GSIZE, ids.length - i * GSIZE);
-    html += '<div class="gc learn" data-act="wstart" data-gi="' + i + '">第 ' + (i + 1) + ' 组<b>' + cnt + ' 题</b></div>';
-  }
-  html += '</div></div><div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>';
-  return html;
-}
-
-/* ---------- 答题 ---------- */
-function headHTML(){
-  const title = SE.mode === "wrong" ? "错题本" : esc(shortName(SE.sec)) + ' · 第 ' + (SE.gi + 1) + ' 组';
-  return '<div class="qhead"><button class="iconbtn" data-act="quit">退出</button>' +
-    '<div class="t">' + title + ' · 第 ' + SE.pass + ' 遍</div>' +
-    '<div class="spacer" style="flex:1"></div>' +
-    '<div class="t">' + (SE.qi + 1) + '/' + SE.queue.length + '</div></div>' +
-    '<div class="bar small"><i style="width:' + Math.round(SE.qi / SE.queue.length * 100) + '%"></i></div>';
-}
-function viewQuiz(){
-  const abs = SE.queue[SE.qi];
-  const it = Q[SE.sec][abs];
-  const st = SE.streak[abs] || 0;
-  const answered = !!LAST;
-  let html = headHTML();
-  html += '<div class="qcard">';
-  html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' +
-          '<span class="badge">' + (it.t === "multi" ? "多选" : it.t === "judge" ? "判断" : "单选") + '</span>' +
-          '<span class="mini">连对 ' + "●".repeat(Math.min(st, PASS_TOTAL)) + "○".repeat(Math.max(0, PASS_TOTAL - st)) + '（' + st + '/' + PASS_TOTAL + '）</span>' +
-          (SE.sel.length ? '' : '') + '</div>';
-  html += '<p class="stem">' + esc(it.q) + '</p><div class="opts">';
-  it.o.forEach((o, i) => {
-    let cls = "opt";
-    if(answered){
-      const isRight = it.a.indexOf(i) >= 0;
-      const picked = SE.sel.indexOf(i) >= 0;
-      if(isRight) cls += " right";
-      else if(picked) cls += " wrong";
-      else cls += " dim";
-    } else if(SE.sel.indexOf(i) >= 0){ cls += " sel"; }
-    const key = it.t === "judge" ? (i === 0 ? "√" : "×") : OPTKEY[i];
-    html += '<div class="' + cls + '" data-act="opt" data-v="' + i + '">' +
-            '<span class="k">' + key + '</span><span>' + esc(o) + '</span></div>';
-  });
-  html += '</div>';
-  if(it.t === "multi" && !answered){
-    html += '<div class="actions"><button class="btn" data-act="submit" ' + (SE.sel.length ? "" : "disabled") + '>提交答案</button></div>';
-  }
-  html += '<div class="fb ' + (answered ? (LAST.ok ? "good show" : "bad show") : "") + '">' +
-          (answered ? (LAST.ok ? "✔ 正确" : "✘ 错误，正确答案：<span class='ans'>" + it.a.map(i => OPTKEY[i]).join("") + "</span>") +
-            '<div class="src">来源：' + esc(it.s || "题库") + '</div>' : '') +
-        '</div>';
-  html += '</div>';
-  if(answered){
-    html += '<div class="actions"><button class="btn ok" data-act="next">' + (SE.qi + 1 >= SE.queue.length ? "完成本遍" : "下一题") + '<span class="kbd">（空格）</span></button></div>';
-  }
-  return html;
-}
-
-/* ---------- 结果 ---------- */
-function viewResult(){
-  const r = SE.result;
-  if(SE.mode === "wrong"){
-    return '<div class="res"><div class="big">🧹</div><div class="ttl">错题清理完成</div>' +
-      '<div class="desc">本组答对的题已移出错题本</div><div class="hr"></div>' +
-      '<div class="kv"><span>当前错题本剩余</span><b>' + Object.keys(DB.wrong).length + ' 道</b></div>' +
-      '</div><div class="row"><button class="btn" data-act="wrong">回错题本</button>' +
-      '<button class="btn ghost" data-act="home">首页</button></div>';
-  }
-  let html = '<div class="res">';
-  if(r.ok){
-    html += '<div class="big">🎉</div><div class="ttl">本组通过</div>';
-    html += '<div class="desc">' + esc(shortName(SE.sec)) + ' · 第 ' + (SE.gi + 1) + ' 组</div>';
-    html += '<div class="hr"></div>';
-    html += '<div class="kv"><span>完成第几次</span><b>' + SE.stageAfter + ' / ' + PASS_TOTAL + '</b></div>';
-    if(SE.stageAfter >= PASS_TOTAL) html += '<div class="kv"><span>状态</span><b style="color:var(--ok)">已掌握 ✓</b></div>';
-    else html += '<div class="kv"><span>下次复习</span><b>' + fmtGap(SE.dueAfter - now()) + '后</b></div>';
-    if(r.graduated) html += '<div class="kv"><span>本组跳出重复队列</span><b>' + r.graduated + ' 题（连对 3 次）</b></div>';
-  }else{
-    html += '<div class="big">🔁</div><div class="ttl">第 ' + SE.pass + ' 遍结束</div>';
-    html += '<div class="desc">错 ' + r.wrong + ' 题，需要重做本组</div>';
-    html += '<div class="hr"></div>';
-    html += '<div class="kv"><span>待重做题数</span><b>' + r.remain + ' 题</b></div>';
-    html += '<div class="kv"><span>本组已跳出队列</span><b>' + r.graduated + ' 题</b></div>';
-  }
-  html += '</div>';
-  html += '<div class="row">';
-  if(!r.ok){
-    html += '<button class="btn" data-act="again">开始第 ' + (SE.pass + 1) + ' 遍</button>';
-  }else{
-    const next = nextUnlearned(SE.sec, SE.gi);
-    if(SE.mode === "learn" && next >= 0) html += '<button class="btn" data-act="nextgroup" data-gi="' + next + '">下一组</button>';
-    html += '<button class="btn ghost" data-act="open" data-sec="' + esc(SE.sec) + '">回组列表</button>';
-  }
-  html += '<button class="btn ghost" data-act="home">首页</button></div>';
-  if(autoOn()) html += '<p class="mini" style="text-align:center;margin-top:14px">1.6 秒后自动继续<span class="kbd">（按 <b>空格</b> 立即继续）</span></p>';
-  return html;
-}
-function nextUnlearned(sec, cur){
-  const n = nGroups(sec);
-  for(let k = 1; k <= n; k++){
-    const gi = (cur + k) % n;
-    const g = DB.g[gkey(sec, gi)];
-    if(!g || g.stage === 0) return gi;
-  }
-  return -1;
-}
-
-/* ===================== 会话控制 ===================== */
-function startGroup(sec, gi, mode){
-  const q = groupIdx(sec, gi).slice();
-  shuffle(q);
-  SE = {sec:sec, gi:gi, mode:mode || (gst(sec, gi).stage > 0 ? "review" : "learn"),
-        queue:q, qi:0, streak:{}, wrong:0, pass:1, sel:[], answered:false, result:null};
-  LAST = null;
-  go("quiz");
-}
-function startWrong(gi){
-  const ids = Object.keys(DB.wrong);
-  const chunk = ids.slice(gi * GSIZE, gi * GSIZE + GSIZE);
-  if(!chunk.length){ toast("没有错题了"); return; }
-  const first = chunk[0].split("#");
-  SE = {sec:first[0], gi:gi, mode:"wrong", ids:chunk, queue:chunk.map((_, i) => i), qi:0,
-        streak:{}, wrong:0, pass:1, sel:[], answered:false, result:null};
-  LAST = null;
-  go("quiz");
-}
-function shuffle(a){
-  for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
-  return a;
-}
-function curItem(){
-  if(SE.mode === "wrong"){ const p = SE.ids[SE.queue[SE.qi]].split("#"); return Q[p[0]][+p[1]]; }
-  return Q[SE.sec][SE.queue[SE.qi]];
-}
-function curId(){
-  if(SE.mode === "wrong") return SE.ids[SE.queue[SE.qi]];
-  return SE.sec + "#" + SE.queue[SE.qi];
-}
-
-function choose(i){
-  if(LAST) return;
-  const it = curItem();
-  if(it.t === "multi"){
-    const k = SE.sel.indexOf(i);
-    if(k >= 0) SE.sel.splice(k, 1); else SE.sel.push(i);
-    render();
-  }else{
-    SE.sel = [i];
-    submit();
-  }
-}
-function submit(){
-  if(LAST) return;
-  const it = curItem();
-  if(!SE.sel.length) return;
-  const ok = SE.sel.length === it.a.length && SE.sel.every(x => it.a.indexOf(x) >= 0);
-  const key = SE.queue[SE.qi];
-  if(ok){
-    SE.streak[key] = (SE.streak[key] || 0) + 1;
-    if(SE.mode === "wrong"){ delete DB.wrong[curId()]; save(); }
-  }else{
-    SE.streak[key] = 0;
-    SE.wrong++;
-    if(SE.mode !== "wrong"){ DB.wrong[curId()] = 1; save(); }
-  }
-  LAST = {ok:ok};
-  render();
-  clearT();
-  if(autoOn() && VIEW.name === "quiz"){
-    // 答对 0.6 秒、答错 1.4 秒后自动进入下一题
-    TQ = setTimeout(function(){ TQ = null; if(VIEW.name === "quiz") nextQ(); }, ok ? 600 : 1400);
-  }
-}
-function nextQ(){
-  if(!LAST) return;
-  clearT();
-  SE.qi++;
-  SE.sel = [];
-  LAST = null;
-  if(SE.qi >= SE.queue.length){ endPass(); return; }
-  render();
-}
-function endPass(){
-  const remain = SE.queue.filter(i => (SE.streak[i] || 0) < 3);
-  const graduated = SE.queue.length - remain.length;
-  if(SE.wrong === 0){
-    applyPass(graduated);
-  }else{
-    SE.result = {ok:false, wrong:SE.wrong, remain:remain.length, graduated:graduated};
-    showResult();
-  }
-}
-function showResult(){
-  go("result");
-  if(autoOn()){
-    TR = setTimeout(function(){ TR = null; if(VIEW.name === "result") autoCont(); }, 1600);
-  }
-}
-function applyPass(graduated){
-  if(SE.mode === "wrong"){
-    SE.result = {ok:true, graduated:graduated};
-    SE.stageAfter = 0; SE.dueAfter = 0;
-    showResult();
-    return;
-  }
-  const st = gst(SE.sec, SE.gi);
-  st.stage = Math.min(PASS_TOTAL, st.stage + 1);
-  const ivs = IV();
-  st.due = st.stage >= PASS_TOTAL ? 0 : now() + ivs[Math.min(st.stage - 1, ivs.length - 1)];
-  save();
-  SE.stageAfter = st.stage;
-  SE.dueAfter = st.due;
-  SE.result = {ok:true, graduated:graduated};
-  showResult();
-}
-function nextDue(sec){
-  const n = nGroups(sec), t = now();
-  for(let gi = 0; gi < n; gi++){
-    const g = DB.g[gkey(sec, gi)];
-    if(g && g.stage > 0 && g.stage < PASS_TOTAL && g.due && g.due <= t) return gi;
-  }
-  return -1;
-}
-/* 结果页自动继续：错了就重做本组，对了就下一组 */
-function autoCont(){
-  const r = SE && SE.result;
-  if(!r){ go("home"); return; }
-  if(!r.ok){ again(); return; }
-  if(SE.mode === "wrong"){
-    if(Object.keys(DB.wrong).length > 0) startWrong(0); else go("home");
-    return;
-  }
-  if(SE.mode === "learn"){
-    const nx = nextUnlearned(SE.sec, SE.gi);
-    if(nx >= 0){ startGroup(SE.sec, nx, "learn"); return; }
-  }
-  const d = nextDue(SE.sec);
-  if(d >= 0){ startGroup(SE.sec, d, "review"); return; }
-  go("home");
-}
-function again(){
-  const remain = SE.queue.filter(i => (SE.streak[i] || 0) < 3);
-  if(!remain.length){ toast("没有需要重做的题了"); return; }
-  shuffle(remain);
-  SE.queue = remain; SE.qi = 0; SE.wrong = 0; SE.pass++; SE.sel = []; LAST = null;
-  go("quiz");
-}
-
-/* ===================== 事件 ===================== */
-document.addEventListener("click", function(e){
-  const t = e.target.closest("[data-act]");
-  if(!t) return;
-  const act = t.dataset.act;
-
-  if(act === "home"){ SE = null; LAST = null; go("home"); return; }
-  if(act === "open"){ go("groups", {sec:t.dataset.sec}); return; }
-  if(act === "gstart"){
-    const sec = t.dataset.sec, gi = +t.dataset.gi;
-    startGroup(sec, gi);
-    return;
-  }
-  if(act === "opt"){ choose(+t.dataset.v); return; }
-  if(act === "submit"){ submit(); return; }
-  if(act === "next"){ nextQ(); return; }
-  if(act === "again"){ again(); return; }
-  if(act === "nextgroup"){ const gi = +t.dataset.gi; startGroup(SE.sec, gi, "learn"); return; }
-  if(act === "quit"){
-    if(confirm("退出本组？当前这一遍的进度不保留（已完成的组不受影响）。")){ SE = null; LAST = null; go("home"); }
-    return;
-  }
-  if(act === "wrong"){ go("wrong"); return; }
-  if(act === "wstart"){ startWrong(+t.dataset.gi); return; }
-  if(act === "export"){
-    const blob = new Blob([JSON.stringify(DB)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "刷题进度_" + todayStr() + ".json";
-    a.click(); URL.revokeObjectURL(a.href);
-    toast("已导出");
-    return;
-  }
-  if(act === "import"){
-    const inp = document.createElement("input");
-    inp.type = "file"; inp.accept = ".json,application/json";
-    inp.onchange = function(){
-      const f = inp.files[0]; if(!f) return;
-      const r = new FileReader();
-      r.onload = function(){
-        try{
-          const o = JSON.parse(r.result);
-          if(!o || o.v !== 1 || !o.g) throw new Error("bad");
-          DB = o; save(); toast("导入成功"); go("home");
-        }catch(err){ toast("文件格式不对"); }
-      };
-      r.readAsText(f, "utf-8");
-    };
-    inp.click();
-    return;
-  }
-  if(act === "reset"){
-    if(confirm("清空全部板块的进度和错题本？不可恢复（建议先导出备份）。")){
-      DB = freshDB(); save(); toast("已清空"); go("home");
-    }
-    return;
-  }
-});
-
-document.addEventListener("change", function(e){
-  const t = e.target;
-  if(!t.dataset) return;
-  if(t.dataset.act === "mode"){ DB.mode = t.checked ? "fast" : "std"; save(); toast(DB.mode === "fast" ? "已启用冲刺模式" : "已恢复标准间隔"); }
-  if(t.dataset.act === "auto"){ DB.auto = !!t.checked; save(); toast(DB.auto ? "已开启自动跳转" : "已关闭自动跳转"); }
-});
-
-document.addEventListener("keydown", function(e){
-  const k = e.key;
-  const isSpace = (k === " " || k === "Spacebar" || e.code === "Space");
-  if(VIEW.name === "result"){
-    if(isSpace || k === "Enter"){ e.preventDefault(); clearT(); autoCont(); }
-    return;
-  }
-  if(VIEW.name !== "quiz") return;
-  if(isSpace || k === "Enter"){
-    e.preventDefault();
-    clearT();
-    if(LAST) nextQ();
-    else if(curItem().t === "multi") submit();
-    return;
-  }
-  const u = k.toUpperCase();
-  if(KEYMAP[u] !== undefined && !LAST){
-    e.preventDefault();
-    choose(KEYMAP[u]);
-  }
-});
-
-/* ===================== 启动 ===================== */
-render();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
