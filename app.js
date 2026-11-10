@@ -51,6 +51,22 @@ function qhash(s){
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
 }
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function safeName(s){ return String(s || "题库").replace(/[\\/:*?"<>|]/g, "_").slice(0, 40); }
+function download(text, filename, mime){
+  const blob = new Blob([text], { type: mime || "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function countQ(secs){
+  return Object.keys(secs || {}).reduce((n, s) => n + ((secs[s].questions || []).length), 0);
+}
 function shuffle(a){
   for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
   return a;
@@ -205,10 +221,11 @@ function viewHome(){
     '<div class="row">' +
       '<button class="btn ghost" data-act="banks">题库管理</button>' +
       '<button class="btn ghost" data-act="import">导入题库</button>' +
-      '<button class="btn ghost" data-act="export">导出进度</button>' +
+      '<button class="btn ghost" data-act="backup">导出题库+进度</button>' +
+      '<button class="btn ghost" data-act="backupall">备份全部题库</button>' +
       '<button class="btn ghost danger" data-act="reset">清空本库进度</button>' +
     '</div>' +
-    '<p class="mini" style="margin-top:12px">进度按题库分别保存；换设备用「导出 / 导入」迁移。</p>' +
+    '<p class="mini" style="margin-top:12px">导出的是 .json 备份，含题库本体与进度，换设备/换浏览器可直接拖回来恢复。</p>' +
   '</div>';
   return html;
 }
@@ -369,10 +386,12 @@ function viewImport(empty){
   }).join("") : '<div class="mini" style="padding:8px 0">还没有导入任何题库</div>';
 
   let html = '<h1>' + (empty ? "导入题库开始刷题" : "题库管理") + '</h1>';
-  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列，选项列写成「选项A…选项G」；判断题选项可用 正确/错误。</p>';
+  html += '<p class="sub">支持 .xlsx / .xls / .csv 题库，以及本工具导出的 .json 备份（题库+进度）。' +
+          '至少需要「题目」「答案」两列，选项列写成「选项A…选项G」；判断题选项可用 正确/错误。</p>';
   html += '<div class="drop" data-act="pick"><div class="big">📥</div><div class="t">点击选择文件，或把文件拖到这里</div>' +
-          '<div class="s">解析在本地完成，文件不会上传</div></div>';
+          '<div class="s">支持 xlsx / xls / csv / json 备份 · 解析在本地完成，文件不会上传</div></div>';
   html += '<div id="impReport" class="report">' + IMP_REPORT + '</div>';
+  html += '<div class="row"><button class="btn ghost" data-act="backupall">备份全部题库</button></div>';
   html += '<h2>已有题库</h2><div class="gbox">' + banks + '</div>';
   if (!empty) html += '<div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>';
   return html;
@@ -477,6 +496,7 @@ function parseAnswer(raw, pairs){
 
 function doImport(file){
   if (!file) return;
+  if (/\.json$/i.test(file.name)){ readBackup(file); return; }
   if (!window.XLSX){
     document.getElementById("impReport").innerHTML = '<div class="bad">解析库没加载成功（vendor/xlsx.full.min.js）</div>';
     return;
@@ -522,6 +542,82 @@ function doImport(file){
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+/* =======================================================================
+ * 备份：题库 + 进度
+ * ===================================================================== */
+function exportBackup(){
+  if (!BANK) return;
+  const payload = {
+    type: "grind-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    bank: { name: BANK.name, secs: BANK.secs },
+    prog: PROG,
+  };
+  download(JSON.stringify(payload), "题库_" + safeName(BANK.name) + "_" + todayStr() + ".json");
+  toast("已导出：题库 + 进度");
+}
+
+function exportAll(){
+  const banks = META.list.map(m => ({
+    name: m.name,
+    at: m.at,
+    data: jload(LS.bank(m.id), null),
+    prog: jload(LS.prog(m.id), null),
+  })).filter(x => x.data);
+  if (!banks.length){ toast("没有可导出的题库"); return; }
+  download(JSON.stringify({ type: "grind-backup-all", version: 1, exportedAt: new Date().toISOString(), banks }),
+    "刷题全部备份_" + todayStr() + ".json");
+  toast("已导出 " + banks.length + " 个题库");
+}
+
+function restoreOne(name, secs, prog){
+  const id = "u" + now().toString(36);
+  if (!jsave(LS.bank(id), { secs: secs, at: now() })) return null;
+  let nm = name || "恢复的题库";
+  if (META.list.some(b => b.name === nm)) nm += "（恢复）";
+  META.list.push({ id: id, name: nm, count: countQ(secs), at: now() });
+  META.active = id;
+  jsave(LS.banks, META);
+  if (prog) jsave(LS.prog(id), prog);
+  return { id: id, name: nm, count: countQ(secs) };
+}
+
+function readBackup(file){
+  const r = new FileReader();
+  r.onload = function(){
+    try{
+      const o = JSON.parse(r.result);
+      if (o && o.type === "grind-backup" && o.bank && o.bank.secs){
+        const done = restoreOne(o.bank.name, o.bank.secs, o.prog);
+        if (!done) return;
+        const st = o.prog && o.prog.stats ? Object.keys(o.prog.stats).length : 0;
+        IMP_REPORT = '<div class="ok">✔ 已恢复题库：<b>' + esc(done.name) + '</b>，' + done.count + ' 题</div>' +
+          '<div class="mini" style="margin-top:6px">进度记录 ' + st + ' 条' + (o.exportedAt ? " · 备份时间 " + new Date(o.exportedAt).toLocaleString() : "") + '</div>' +
+          '<div class="row"><button class="btn" data-act="use" data-id="' + esc(done.id) + '">开始刷这套题</button></div>';
+        render();
+        toast("恢复成功");
+        return;
+      }
+      if (o && o.type === "grind-backup-all" && Array.isArray(o.banks)){
+        let ok = 0, n = 0;
+        o.banks.forEach(b => { n++; if (b.data && b.data.secs && restoreOne(b.name, b.data.secs, b.prog)) ok++; });
+        const first = META.list[META.list.length - 1];
+        IMP_REPORT = '<div class="ok">✔ 已恢复 <b>' + ok + '/' + n + '</b> 个题库</div>' +
+          '<div class="row"><button class="btn" data-act="use" data-id="' + esc(first ? first.id : "") + '">开始使用</button></div>';
+        render();
+        toast("恢复 " + ok + " 个题库");
+        return;
+      }
+      throw new Error("不是本工具的备份文件");
+    }catch(err){
+      IMP_REPORT = '<div class="bad">恢复失败：' + esc(err.message) + '</div>';
+      render();
+    }
+  };
+  r.readAsText(file, "utf-8");
 }
 
 /* =======================================================================
@@ -696,18 +792,12 @@ document.addEventListener("click", function(e){
   }
   if (act === "pick"){
     const inp = document.createElement("input");
-    inp.type = "file"; inp.accept = ".xlsx,.xls,.csv";
+    inp.type = "file"; inp.accept = ".xlsx,.xls,.csv,.json";
     inp.onchange = () => doImport(inp.files[0]);
     inp.click(); return;
   }
-  if (act === "export"){
-    const blob = new Blob([JSON.stringify({ bank: BANK.id, prog: PROG })], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "刷题进度_" + BANK.name + ".json";
-    a.click(); URL.revokeObjectURL(a.href);
-    toast("已导出"); return;
-  }
+  if (act === "backup"){ exportBackup(); return; }
+  if (act === "backupall"){ exportAll(); return; }
   if (act === "reset"){
     if (!confirm("清空当前题库的进度和错题本？不可恢复。")) return;
     PROG = { mode: PROG.mode, auto: PROG.auto, g: {}, stats: {} };
