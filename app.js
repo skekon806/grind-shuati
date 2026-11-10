@@ -62,26 +62,22 @@ function jsave(key, val){
 }
 
 /* ---------------- 题库管理 ---------------- */
-let META = jload(LS.banks, { active: "builtin", list: [] });
-if (!META.list.find(b => b.id === "builtin" && b.builtin)) {
-  META.list.unshift({ id: "builtin", name: "客服助理上岗资格证（内置）", builtin: true, at: 0 });
-}
+let META = jload(LS.banks, { active: null, list: [] });
+// 清掉历史遗留的内置题库记录
+META.list = (META.list || []).filter(b => !b.builtin && b.id !== "builtin");
+if (!META.list.find(b => b.id === META.active)) META.active = META.list[0] ? META.list[0].id : null;
+
 let BANK = null;          // { id, name, secs:{ name:{weight, questions:[...]} } }
 let PROG = null;          // { mode, auto, g:{}, stats:{} }
 let SECS = [];            // 板块名数组
 let QIDX = {};            // qid -> {sec, idx, item}
+let IMP_REPORT = "";      // 导入结果（持久显示，不随页面切换消失）
 
 function bankMeta(id){ return META.list.find(b => b.id === id); }
 
 function loadBank(id){
-  let data = null;
-  if (id === "builtin"){
-    if (!window.BANK || !window.BANK.secs) throw new Error("内置题库缺失");
-    data = { secs: window.BANK.secs };
-  } else {
-    data = jload(LS.bank(id), null);
-    if (!data) throw new Error("题库数据丢失");
-  }
+  const data = jload(LS.bank(id), null);
+  if (!data) throw new Error("题库数据丢失");
   const secs = data.secs || {};
   const meta = bankMeta(id) || { id: id, name: id };
   BANK = { id: id, name: meta.name, secs: secs };
@@ -152,7 +148,8 @@ function go(name, payload){ clearT(); VIEW = Object.assign({ name }, payload || 
 /* ---------------- 渲染 ---------------- */
 function render(){
   if (!BANK){
-    $app.innerHTML = '<div class="empty">没有可用题库<br><br><button class="btn" data-act="import">导入题库</button></div>';
+    document.getElementById("hdrSub").textContent = "";
+    $app.innerHTML = viewImport(true);
     return;
   }
   document.getElementById("hdrSub").textContent = " " + BANK.name;
@@ -161,8 +158,8 @@ function render(){
   else if (VIEW.name === "quiz")   $app.innerHTML = viewQuiz();
   else if (VIEW.name === "result") $app.innerHTML = viewResult();
   else if (VIEW.name === "wrong")  $app.innerHTML = viewWrong();
-  else if (VIEW.name === "import") $app.innerHTML = viewImport();
-  else if (VIEW.name === "banks")  $app.innerHTML = viewBanks();
+  else if (VIEW.name === "import") $app.innerHTML = viewImport(false);
+  else if (VIEW.name === "banks")  $app.innerHTML = viewImport(false);
 }
 
 function bankBar(){
@@ -359,28 +356,26 @@ function viewWrong(){
 }
 
 /* ---------------- 导入 ---------------- */
-function viewImport(){
-  const banks = META.list.map(b =>
-    '<div class="bankitem"><div><div class="nm">' + esc(b.name) + '</div>' +
-    '<div class="meta">' + (b.builtin ? "内置题库" : (b.count + " 题 · " + (b.at ? new Date(b.at).toLocaleDateString() : ""))) + '</div></div>' +
-    '<div class="act">' +
-      (b.id === BANK.id ? '<span class="smallbtn on">使用中</span>' : '<button class="smallbtn" data-act="use" data-id="' + esc(b.id) + '">使用</button>') +
-      (!b.builtin ? '<button class="smallbtn" data-act="delbank" data-id="' + esc(b.id) + '">删除</button>' : '') +
-    '</div></div>'
-  ).join("");
+function viewImport(empty){
+  const banks = META.list.length ? META.list.map(b => {
+    const active = META.active === b.id;
+    return '<div class="bankitem"><div><div class="nm">' + esc(b.name) + '</div>' +
+      '<div class="meta">' + b.count + ' 题 · ' + (b.at ? new Date(b.at).toLocaleDateString() : "内置") + '</div></div>' +
+      '<div class="act">' +
+        (active ? '<span class="smallbtn on">使用中</span>'
+                : '<button class="smallbtn" data-act="use" data-id="' + esc(b.id) + '">使用</button>') +
+        '<button class="smallbtn" data-act="delbank" data-id="' + esc(b.id) + '">删除</button>' +
+      '</div></div>';
+  }).join("") : '<div class="mini" style="padding:8px 0">还没有导入任何题库</div>';
 
-  return '<h1>导入题库</h1><p class="sub">支持 .xlsx / .xls / .csv。需要包含「题目」「答案」两列，选项列写成「选项A…选项G」。' +
-    '<br>判断题可用 正确/错误 或 A/B 作选项。</p>' +
-    '<div class="drop" data-act="pick"><div class="big">📥</div><div class="t">点击选择文件，或把文件拖到这里</div>' +
-    '<div class="s">解析在本地完成，文件不会上传</div></div>' +
-    '<div id="impReport" class="report"></div>' +
-    '<h2>已有题库</h2><div class="gbox">' + banks + '</div>' +
-    '<div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>';
-}
-
-/* ---------------- 题库管理 ---------------- */
-function viewBanks(){
-  return viewImport();
+  let html = '<h1>' + (empty ? "导入题库开始刷题" : "题库管理") + '</h1>';
+  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列，选项列写成「选项A…选项G」；判断题选项可用 正确/错误。</p>';
+  html += '<div class="drop" data-act="pick"><div class="big">📥</div><div class="t">点击选择文件，或把文件拖到这里</div>' +
+          '<div class="s">解析在本地完成，文件不会上传</div></div>';
+  html += '<div id="impReport" class="report">' + IMP_REPORT + '</div>';
+  html += '<h2>已有题库</h2><div class="gbox">' + banks + '</div>';
+  if (!empty) html += '<div class="row"><button class="btn ghost" data-act="home">返回首页</button></div>';
+  return html;
 }
 
 /* =======================================================================
@@ -506,20 +501,24 @@ function doImport(file){
       const okSave = jsave(LS.bank(id), { secs: secs, at: now() });
       if (!okSave) return;
       META.list.push({ id: id, name: name, count: res.total, at: now() });
+      META.active = id;
       jsave(LS.banks, META);
 
       let html = '<div class="ok">✔ 解析成功：<b>' + res.total + '</b> 题，' + secNames.length + ' 个板块</div>';
       html += '<div class="mini" style="margin-top:6px">' + secNames.map(s => esc(s) + " " + res.secs[s].length + " 题").join(" · ") + '</div>';
       if (res.skipped.length){
         html += '<div class="bad" style="margin-top:8px">跳过 ' + res.skipped.length + ' 行：</div><div class="mini">' +
-          res.skipped.slice(0, 6).map(x => "第 " + x.row + " 行：" + esc(x.why) + (x.q ? "（" + esc(x.q) + "…）" : "")).join("<br>") +
-          (res.skipped.length > 6 ? "<br>…" : "") + '</div>';
+          res.skipped.slice(0, 8).map(x => "第 " + x.row + " 行：" + esc(x.why) + (x.q ? "（" + esc(x.q) + "…）" : "")).join("<br>") +
+          (res.skipped.length > 8 ? "<br>…" : "") + '</div>';
       }
-      rep.innerHTML = html;
-      toast("已导入，正在切换");
-      setTimeout(() => { loadBank(id); go("home"); }, 600);
+      html += '<div class="row"><button class="btn" data-act="use" data-id="' + esc(id) + '">开始刷这套题</button>' +
+              '<button class="btn ghost" data-act="pick">继续导入</button></div>';
+      IMP_REPORT = html;                       // 持久保存，切页面也不会消失
+      render();                                // 停在当前页，报告完整可见
+      toast("导入成功：" + res.total + " 题");
     }catch(err){
-      rep.innerHTML = '<div class="bad">导入失败：' + esc(err.message) + '</div>';
+      IMP_REPORT = '<div class="bad">导入失败：' + esc(err.message) + '</div>';
+      render();
     }
   };
   reader.readAsArrayBuffer(file);
@@ -599,7 +598,7 @@ function submit(){
   if (autoOn()) TQ = setTimeout(() => { TQ = null; if (VIEW.name === "quiz") nextQ(); }, ok ? 600 : 1400);
 }
 function nextQ(){
-  if (!LAST) return;
+  if (!LAST || !BANK) return;
   clearT();
   LAST = null; SE.sel = [];
   SE.qi++;
@@ -632,8 +631,8 @@ function showResult(){
   if (autoOn()) TR = setTimeout(() => { TR = null; if (VIEW.name === "result") autoCont(); }, 1600);
 }
 function autoCont(){
-  const r = SE && SE.result;
-  if (!r) return go("home");
+  if (!BANK || !SE || !SE.result) return go("home");
+  const r = SE.result;
   if (!r.ok) return again();
   if (SE.mode === "wrong") return go("wrong");
   if (SE.mode === "learn"){
@@ -645,6 +644,7 @@ function autoCont(){
   go("home");
 }
 function again(){
+  if (!BANK || !SE) return;
   const remain = SE.queue.filter(r => (SE.streak[qhash(BANK.secs[r.sec].questions[r.idx].q)] || 0) < PASS_TOTAL);
   if (!remain.length) return toast("没有要重做的题");
   shuffle(remain);
@@ -687,8 +687,11 @@ document.addEventListener("click", function(e){
     localStorage.removeItem(LS.bank(id));
     localStorage.removeItem(LS.prog(id));
     META.list = META.list.filter(b => b.id !== id);
+    if (META.active === id) META.active = META.list[0] ? META.list[0].id : null;
     jsave(LS.banks, META);
-    if (BANK.id === id){ loadBank("builtin"); }
+    clearT(); SE = null; LAST = null;
+    BANK = null; PROG = null;
+    if (META.active){ try { loadBank(META.active); } catch(e){} }
     go("import"); toast("已删除"); return;
   }
   if (act === "pick"){
@@ -757,13 +760,9 @@ document.addEventListener("keydown", function(e){
 
 /* ---------------- 启动 ---------------- */
 (function boot(){
-  try{
-    let id = META.active;
-    if (!bankMeta(id)) id = "builtin";
-    loadBank(id);
-  }catch(err){
-    console.error(err);
-    try { loadBank("builtin"); } catch(e){ BANK = null; }
+  const id = META.active;
+  if (id && bankMeta(id)){
+    try { loadBank(id); } catch(err){ console.error(err); BANK = null; }
   }
   render();
 })();
