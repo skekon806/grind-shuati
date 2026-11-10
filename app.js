@@ -244,8 +244,12 @@ function viewHome(){
       '<div class="hd"><div class="nm">上次模考成绩</div><div class="tag">' + sc + ' 分</div></div>' +
       '<div class="st" style="margin-top:6px">答对 ' + (ex.right || 0) + ' / ' + (ex.total || 0) + ' 题，点开看解析</div></div>';
   } else {
+    const exs = PROG.exams || [];
+    const best = exs.length ? Math.max.apply(null, exs.map(h => h.score)) : null;
     html += '<div class="sec" data-act="examstart">' +
-      '<div class="hd"><div class="nm">模拟考试</div><div class="tag">随机 ' + Math.min(EXAM_SIZE, bankTotal()) + ' 题 · ' + EXAM_MINUTES + ' 分钟</div></div>' +
+      '<div class="hd"><div class="nm">模拟考试</div>' +
+      '<div class="tag">' + (exs.length ? "最好 " + best + " 分 · 已考 " + exs.length + " 次"
+        : "随机 " + Math.min(EXAM_SIZE, bankTotal()) + " 题 · " + EXAM_MINUTES + " 分钟") + '</div></div>' +
       '<div class="st" style="margin-top:6px">交卷后才显示答案与成绩</div></div>';
   }
 
@@ -667,6 +671,12 @@ function submitExam(auto){
   EXAM.usedMs = now() - EXAM.startAt;
   EXAM.right = right;
   EXAM.total = EXAM.refs.length;
+  // 成绩历史（最多保留 30 次）
+  const score = Math.round(right / EXAM.total * 100);
+  PROG.exams = (PROG.exams || []).concat([{
+    at: now(), score: score, right: right, total: EXAM.total, usedMs: EXAM.usedMs,
+  }]).slice(-30);
+  saveProg();
   examSave();
   stopTimer();
   go("examresult");
@@ -740,6 +750,18 @@ function viewExamResult(){
     '<button class="btn" data-act="examtoggle">' + (EXAM.showAll ? "只看错题" : "查看全部解析") + '</button>' +
     '<button class="btn ghost" data-act="examagain">再来一次（新题）</button>' +
     '<button class="btn ghost" data-act="examclose">结束</button></div>';
+
+  // 历史成绩
+  const hist = (PROG.exams || []).slice(-8).reverse();
+  if (hist.length){
+    const best = Math.max.apply(null, (PROG.exams || []).map(h => h.score));
+    html += '<h2 style="margin-top:20px">历史成绩</h2>';
+    html += '<div class="gbox" style="padding:6px 14px">' +
+      '<div class="kv"><span>最好成绩</span><b style="color:var(--ok)">' + best + ' 分</b></div>' +
+      hist.map(h => '<div class="kv"><span>' + new Date(h.at).toLocaleString() + '</span><b>' +
+        h.score + ' 分 <span class="mini">（' + h.right + '/' + h.total + '，' + fmtClock(h.usedMs) + '）</span></b></div>').join("") +
+    '</div>';
+  }
 
   const list = [];
   EXAM.refs.forEach((r, i) => {
