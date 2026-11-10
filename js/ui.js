@@ -1,10 +1,45 @@
 /* 刷题助手 · 界面：路由/首页/事件（经典脚本，按 index.html 中的顺序加载） */
 
 /* ---------------- 渲染 ---------------- */
+/* ---------------- 底部导航 ---------------- */
+const TABS = [
+  { id: "home",  label: "刷题", icon: "📖" },
+  { id: "exam",  label: "模考", icon: "⏱️" },
+  { id: "wrong", label: "错题", icon: "📕" },
+  { id: "banks", label: "题库", icon: "🗂️" },
+];
+function tabOf(){
+  const n = VIEW.name;
+  if (n === "exam" || n === "examcard" || n === "examresult" || n === "examhome") return "exam";
+  if (n === "wrong") return "wrong";
+  if (n === "import" || n === "banks") return "banks";
+  return "home";
+}
+function renderTabs(){
+  const nav = document.getElementById("tabbar");
+  if (!nav) return;
+  const immersive = ["quiz", "result", "exam", "examcard"].indexOf(VIEW.name) >= 0;
+  nav.className = "tabbar" + (immersive ? " hide" : "");
+  if (immersive){ nav.innerHTML = ""; return; }
+  const cur = tabOf();
+  const wl = (BANK && PROG) ? wrongList().length : 0;
+  nav.innerHTML = '<div class="in">' + TABS.map(t =>
+    '<button class="tab' + (t.id === cur ? " on" : "") + '" data-act="tab" data-tab="' + t.id + '">' +
+      '<span class="ic">' + t.icon + '</span><span>' + t.label + '</span>' +
+      (t.id === "wrong" && wl ? '<span class="tbadge">' + (wl > 99 ? "99+" : wl) + '</span>' : '') +
+    '</button>').join("") + '</div>';
+}
+function examTab(){
+  if (EXAM && !EXAM.submitted) go("exam");
+  else if (EXAM && EXAM.submitted) go("examresult");
+  else go("examhome");
+}
+
 function render(){
   if (!BANK){
     document.getElementById("hdrSub").textContent = "";
     $app.innerHTML = viewImport(true);
+    renderTabs();
     return;
   }
   document.getElementById("hdrSub").textContent = " " + BANK.name;
@@ -16,9 +51,11 @@ function render(){
   else if (VIEW.name === "exam")   $app.innerHTML = viewExam();
   else if (VIEW.name === "examcard") $app.innerHTML = viewExamCard();
   else if (VIEW.name === "examresult") $app.innerHTML = viewExamResult();
+  else if (VIEW.name === "examhome") $app.innerHTML = viewExamHome();
   else if (VIEW.name === "import") $app.innerHTML = viewImport(false);
   else if (VIEW.name === "banks")  $app.innerHTML = viewImport(false);
 
+  renderTabs();
   if (VIEW.name === "exam" && EXAM && !EXAM.submitted) startTimer();
   else stopTimer();
 }
@@ -34,7 +71,6 @@ function bankBar(){
 }
 
 function viewHome(){
-  const wl = wrongList().length;
   let html = bankBar();
   html += '<h1>选择板块</h1><p class="sub">每组 ' + GSIZE + ' 题，必须全对才算过；组内某题连续答对 ' + PASS_TOTAL +
     ' 次即可跳出重复队列。每组共需完成 ' + PASS_TOTAL + ' 次全对（含首次），间隔按遗忘曲线安排。' +
@@ -55,38 +91,10 @@ function viewHome(){
       '</div></div>';
   });
 
-  html += '<div class="sec" data-act="wrong" style="border-color:#f5c2c4">' +
-    '<div class="hd"><div class="nm">错题本</div><div class="tag">' + wl + ' 道待清除</div></div>' +
-    '<div class="st" style="margin-top:6px">答错自动收录；连续答对 ' + WRONG_CLEAR + ' 次自动移出</div></div>';
-
-  // 模拟考试
-  const ex = EXAM;
-  if (ex && !ex.submitted){
-    const left = Math.max(0, ex.endAt - now());
-    html += '<div class="sec" data-act="examresume" style="border-color:#c9d8fb">' +
-      '<div class="hd"><div class="nm">继续上次模考</div><div class="tag">剩余 ' + fmtClock(left) + '</div></div>' +
-      '<div class="st" style="margin-top:6px">已答 ' + examAnsweredCount() + ' / ' + ex.refs.length + ' 题</div></div>';
-  } else if (ex && ex.submitted){
-    const sc = Math.round((ex.right || 0) / (ex.total || 1) * 100);
-    html += '<div class="sec" data-act="examview" style="border-color:#bfe6d3">' +
-      '<div class="hd"><div class="nm">上次模考成绩</div><div class="tag">' + sc + ' 分</div></div>' +
-      '<div class="st" style="margin-top:6px">答对 ' + (ex.right || 0) + ' / ' + (ex.total || 0) + ' 题，点开看解析</div></div>';
-  } else {
-    const exs = PROG.exams || [];
-    const best = exs.length ? Math.max.apply(null, exs.map(h => h.score)) : null;
-    html += '<div class="sec" data-act="examstart">' +
-      '<div class="hd"><div class="nm">模拟考试</div>' +
-      '<div class="tag">' + (exs.length ? "最好 " + best + " 分 · 已考 " + exs.length + " 次"
-        : "随机 " + Math.min(EXAM_SIZE, bankTotal()) + " 题 · " + EXAM_MINUTES + " 分钟") + '</div></div>' +
-      '<div class="st" style="margin-top:6px">交卷后才显示答案与成绩</div></div>';
-  }
-
   html += '<div class="settings"><h3>设置</h3>' +
     '<label class="chk"><input type="checkbox" data-act="auto" ' + (autoOn() ? "checked" : "") + '> 答题后自动跳转（对 0.6 秒 / 错 1.4 秒），结果页 1.6 秒后自动继续</label>' +
     '<label class="chk"><input type="checkbox" data-act="mode" ' + (PROG.mode === "fast" ? "checked" : "") + '> 冲刺模式：复习间隔 1 分钟 / 8 分钟 / 20 分钟</label>' +
     '<div class="row">' +
-      '<button class="btn ghost" data-act="banks">题库管理</button>' +
-      '<button class="btn ghost" data-act="import">导入题库</button>' +
       '<button class="btn ghost danger" data-act="reset">清空本库进度</button>' +
     '</div>' +
     '<p class="mini" style="margin-top:12px">进度按题库分别保存；换设备重新导入同一份题库即可继续（进度不会跟随）。</p>' +
@@ -103,6 +111,14 @@ document.addEventListener("click", function(e){
   const act = t.dataset.act;
 
   if (act === "home"){ SE = null; LAST = null; go("home"); return; }
+  if (act === "tab"){
+    const tab = t.dataset.tab;
+    if (tab === "home"){ SE = null; LAST = null; go("home"); }
+    else if (tab === "exam") examTab();
+    else if (tab === "wrong") go("wrong");
+    else if (tab === "banks") go("import");
+    return;
+  }
   if (act === "open"){ go("groups", { sec: t.dataset.sec }); return; }
   if (act === "gstart"){ startGroup(t.dataset.sec, +t.dataset.gi); return; }
   if (act === "opt"){ choose(+t.dataset.v); return; }

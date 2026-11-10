@@ -209,3 +209,44 @@ function viewExamResult(){
   html += list.length ? list.join("") : '<div class="empty">全对，没有错题 🎉</div>';
   return html;
 }
+
+/* 模考首页（底部导航「模考」标签） */
+function viewExamHome(){
+  const exs = PROG.exams || [];
+  const best = exs.length ? Math.max.apply(null, exs.map(h => h.score)) : null;
+  const total = Math.min(EXAM_SIZE, bankTotal());
+  let html = '<h1>模拟考试</h1><p class="sub">从当前题库全部板块随机抽题，限时 ' + EXAM_MINUTES +
+    ' 分钟；答题过程中不显示对错，交卷后才出答案。</p>';
+
+  html += '<div class="gbox" style="padding:14px 16px">' +
+    '<div class="kv"><span>题量</span><b>' + total + ' 题（随机抽取）</b></div>' +
+    '<div class="kv"><span>时长</span><b>' + EXAM_MINUTES + ' 分钟</b></div>' +
+    '<div class="kv"><span>公布答案</span><b>交卷后</b></div>' +
+    '<div class="kv"><span>错题处理</span><b>自动记入错题本</b></div>' +
+  '</div>';
+  html += '<div class="row"><button class="btn" data-act="examstart">开始模考</button></div>';
+
+  if (EXAM && !EXAM.submitted){
+    const left = Math.max(0, EXAM.endAt - now());
+    html += '<div class="sec" data-act="examresume" style="border-color:#c9d8fb;margin-top:16px">' +
+      '<div class="hd"><div class="nm">继续上次模考</div><div class="tag">剩余 ' + fmtClock(left) + '</div></div>' +
+      '<div class="st" style="margin-top:6px">已答 ' + examAnsweredCount() + ' / ' + EXAM.refs.length + ' 题</div></div>';
+  } else if (EXAM && EXAM.submitted){
+    const sc = Math.round((EXAM.right || 0) / (EXAM.total || 1) * 100);
+    html += '<div class="sec" data-act="examview" style="border-color:#bfe6d3;margin-top:16px">' +
+      '<div class="hd"><div class="nm">上次模考成绩</div><div class="tag">' + sc + ' 分</div></div>' +
+      '<div class="st" style="margin-top:6px">答对 ' + (EXAM.right || 0) + ' / ' + (EXAM.total || 0) +
+      ' 题，点开看解析</div></div>';
+  }
+
+  if (exs.length){
+    const hist = exs.slice(-8).reverse();
+    html += '<h2 style="margin-top:22px">历史成绩</h2>';
+    html += '<div class="gbox" style="padding:6px 16px">' +
+      '<div class="kv"><span>最好成绩</span><b style="color:var(--ok)">' + best + ' 分</b></div>' +
+      hist.map(h => '<div class="kv"><span>' + new Date(h.at).toLocaleString() + '</span><b>' + h.score +
+        ' 分 <span class="mini">（' + h.right + '/' + h.total + '，' + fmtClock(h.usedMs) + '）</span></b></div>').join("") +
+    '</div>';
+  }
+  return html;
+}
