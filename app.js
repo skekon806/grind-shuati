@@ -387,7 +387,7 @@ function viewImport(empty){
   }).join("") : '<div class="mini" style="padding:8px 0">还没有导入任何题库</div>';
 
   let html = '<h1>' + (empty ? "导入题库开始刷题" : "题库管理") + '</h1>';
-  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列。选项可以是：①「选项A…选项Z」多列；②直接写在题目里（A. … B. …）；③塞在「选项」一列里。判断题选项可用 正确/错误。</p>';
+  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列。选项有几个就解析几个，列名可写「选项A…」「选项1…」，也可以直接写在题目里（A. … B. …）。判断题选项可用 正确/错误。</p>';
   html += '<div class="drop" data-act="pick"><div class="big">📥</div><div class="t">点击选择文件，或把文件拖到这里</div>' +
           '<div class="s">支持 xlsx / xls / csv · 解析在本地完成，文件不会上传</div></div>';
   html += '<div id="impReport" class="report">' + IMP_REPORT + '</div>';
@@ -469,26 +469,42 @@ function parseWorkbook(rows){
 
 function buildMap(header){
   const m = { q: -1, ans: -1, type: -1, sec: -1, combined: -1, opts: [] };
-  header.forEach((h, i) => {
+  header.forEach((raw, i) => {
+    const h = String(raw || "").replace(/\s+/g, "");
     if (m.q < 0 && /^(题目|题干|问题|试题)/.test(h)) { m.q = i; return; }
     if (m.ans < 0 && /^(答案|正确答案)/.test(h)) { m.ans = i; return; }
     if (m.type < 0 && /^题型/.test(h)) { m.type = i; return; }
     if (m.sec < 0 && /(题库|分类|模块|类别|章节|科目)/.test(h)) { m.sec = i; return; }
-    // 「选项」这一列里塞了 A. B. C. 多行选项
-    if (m.combined < 0 && /^选项/.test(h) && !/[A-Z]/i.test(h.replace(/^选项/, ""))) { m.combined = i; return; }
-    const lm = h.match(/^选项\s*([A-Z])/i) || h.match(/^([A-Z])$/i) || h.match(/^([A-Z])[\.、]/i);
-    if (lm) m.opts.push({ i, letter: lm[1].toUpperCase() });
+
+    // 选项1 / 选项2 …（数字编号）
+    const nm = h.match(/^选项[（(]?(\d+)[）)]?$/);
+    if (nm){
+      const n = Math.max(0, parseInt(nm[1], 10) - 1);
+      m.opts.push({ i, ord: n, letter: OPTKEY[n] || ("#" + nm[1]) });
+      return;
+    }
+    // 选项A / 选项B …（字母编号），也容忍「选项A（xxx）」这种后缀
+    const lm = h.match(/^选项([A-Z])/i) || h.match(/^([A-Z])$/i) || h.match(/^([A-Z])[.、．]/i);
+    if (lm){
+      const L = lm[1].toUpperCase();
+      m.opts.push({ i, ord: L.charCodeAt(0) - 65, letter: L });
+      return;
+    }
+    // 只有一列「选项」，里面塞了 A. B. C. 多行
+    if (m.combined < 0 && /^选项(内容|列表|全部)?$/.test(h)) { m.combined = i; return; }
   });
-  // 没有字母选项列时，把「答案」之后未使用的列当作 A/B/C…
+
+  // 一个带编号的选项列都没有：把「答案」之后未使用的列按顺序当作 A/B/C…
   if (!m.opts.length && m.combined < 0){
     const used = new Set([m.q, m.ans, m.type, m.sec]);
     let L = 0;
-    for (let i = 0; i < header.length && L < 26; i++){
-      if (used.has(i) || !header[i]) continue;
-      m.opts.push({ i, letter: OPTKEY[L++] });
+    for (let i = 0; i < header.length; i++){
+      if (used.has(i) || !String(header[i] || "").trim()) continue;
+      m.opts.push({ i, ord: L, letter: OPTKEY[L] || ("#" + (L + 1)) });
+      L++;
     }
   }
-  m.opts.sort((a, b) => a.letter.localeCompare(b.letter));
+  m.opts.sort((a, b) => a.ord - b.ord);
   return m;
 }
 
@@ -526,6 +542,11 @@ function parseAnswer(raw, pairs){
   // 判断题文字答案
   if (/^(正确|对|是|√|✓|T|TRUE|Y|YES)$/i.test(s)) return [0];
   if (/^(错误|错|否|×|✗|F|FALSE|N|NO)$/i.test(s)) return [1];
+  // 数字答案：选项是 1、2、3… 编号时（判断题 1/2 不适用）
+  if (pairs.length > 2 && /^\d+(\s*[,、]\s*\d+)*$/.test(s)){
+    const idx = s.split(/[,、]/).map(x => parseInt(x, 10) - 1).filter(n => n >= 0 && n < pairs.length);
+    if (idx.length) return idx;
+  }
   // 字母答案 A / A,B,C / A、B
   const letters = (s.toUpperCase().match(/[A-Z]/g) || []);
   if (letters.length){
@@ -534,7 +555,7 @@ function parseAnswer(raw, pairs){
       const k = pairs.findIndex(p => p.letter === L);
       if (k >= 0 && idx.indexOf(k) < 0) idx.push(k);
     });
-    return idx;
+    return idx.length ? idx : null;
   }
   // 答案直接写选项内容
   const k = pairs.findIndex(p => p.text === s);
