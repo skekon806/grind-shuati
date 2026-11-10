@@ -387,7 +387,7 @@ function viewImport(empty){
   }).join("") : '<div class="mini" style="padding:8px 0">还没有导入任何题库</div>';
 
   let html = '<h1>' + (empty ? "导入题库开始刷题" : "题库管理") + '</h1>';
-  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列，选项列写成「选项A…选项Z」；判断题选项可用 正确/错误。</p>';
+  html += '<p class="sub">支持 .xlsx / .xls / .csv。至少需要「题目」「答案」两列。选项可以是：①「选项A…选项Z」多列；②直接写在题目里（A. … B. …）；③塞在「选项」一列里。判断题选项可用 正确/错误。</p>';
   html += '<div class="drop" data-act="pick"><div class="big">📥</div><div class="t">点击选择文件，或把文件拖到这里</div>' +
           '<div class="s">支持 xlsx / xls / csv · 解析在本地完成，文件不会上传</div></div>';
   html += '<div id="impReport" class="report">' + IMP_REPORT + '</div>';
@@ -426,8 +426,26 @@ function parseWorkbook(rows){
     if (/^(序号|题目|题干)/.test(q)) continue;
 
     const opts = map.opts.map(o => row[o.i] || "");
-    const pairs = [];
+    let pairs = [];
     map.opts.forEach((o, k) => { if (opts[k]) pairs.push({ letter: o.letter, text: opts[k] }); });
+
+    // 选项也可能直接写在题目里（A. … B. …），或整列塞在一格里
+    let inline = null;
+    if (map.combined >= 0) inline = splitOptionsFromText(row[map.combined] || "", true);
+    if (!inline) inline = splitOptionsFromText(q, false);
+    if (!inline && pairs.length === 1) inline = splitOptionsFromText(pairs[0].text, true);
+
+    let stem = q;
+    if (inline && inline.opts.length >= 2){
+      const ansLetters = (String(ansRaw).toUpperCase().match(/[A-Z]/g) || []);
+      const need = ansLetters.length ? Math.max.apply(null, ansLetters.map(c => c.charCodeAt(0) - 65)) : -1;
+      const useInline = pairs.length < 2 || inline.opts.length > pairs.length || need >= pairs.length;
+      if (useInline){
+        pairs = inline.opts.map((t, i) => ({ letter: OPTKEY[i], text: t }));
+        if (!inline.empty) stem = inline.stem;
+      }
+    }
+
     if (pairs.length < 2){ skipped.push({ row: r + 1, why: "选项不足 2 个", q: q.slice(0, 30) }); continue; }
 
     const a = parseAnswer(ansRaw, pairs);
@@ -438,29 +456,31 @@ function parseWorkbook(rows){
     if (t === "single" && a.length > 1) t = "multi";
     if (t === "judge" && pairs.length !== 2) t = a.length > 1 ? "multi" : "single";
 
-    const key = q.replace(/\s+/g, "");
+    const key = stem.replace(/\s+/g, "");
     if (seen.has(key)){ skipped.push({ row: r + 1, why: "与前面重复", q: q.slice(0, 30) }); continue; }
     seen.add(key);
 
     const sec = secRaw || "未分类";
-    (secs[sec] || (secs[sec] = [])).push({ q, o: pairs.map(p => p.text), a, t, s: "" });
+    (secs[sec] || (secs[sec] = [])).push({ q: stem, o: pairs.map(p => p.text), a, t, s: "" });
     out.push(1);
   }
   return { secs, total: out.length, skipped };
 }
 
 function buildMap(header){
-  const m = { q: -1, ans: -1, type: -1, sec: -1, opts: [] };
+  const m = { q: -1, ans: -1, type: -1, sec: -1, combined: -1, opts: [] };
   header.forEach((h, i) => {
     if (m.q < 0 && /^(题目|题干|问题|试题)/.test(h)) { m.q = i; return; }
     if (m.ans < 0 && /^(答案|正确答案)/.test(h)) { m.ans = i; return; }
     if (m.type < 0 && /^题型/.test(h)) { m.type = i; return; }
     if (m.sec < 0 && /(题库|分类|模块|类别|章节|科目)/.test(h)) { m.sec = i; return; }
+    // 「选项」这一列里塞了 A. B. C. 多行选项
+    if (m.combined < 0 && /^选项/.test(h) && !/[A-Z]/i.test(h.replace(/^选项/, ""))) { m.combined = i; return; }
     const lm = h.match(/^选项\s*([A-Z])/i) || h.match(/^([A-Z])$/i) || h.match(/^([A-Z])[\.、]/i);
     if (lm) m.opts.push({ i, letter: lm[1].toUpperCase() });
   });
   // 没有字母选项列时，把「答案」之后未使用的列当作 A/B/C…
-  if (!m.opts.length){
+  if (!m.opts.length && m.combined < 0){
     const used = new Set([m.q, m.ans, m.type, m.sec]);
     let L = 0;
     for (let i = 0; i < header.length && L < 26; i++){
@@ -470,6 +490,34 @@ function buildMap(header){
   }
   m.opts.sort((a, b) => a.letter.localeCompare(b.letter));
   return m;
+}
+
+/* 从一段文本里拆出「A. … B. … C. …」形式的选项 */
+function splitOptionsFromText(text, allowNoStem){
+  const s = String(text || "").replace(/\r/g, "\n").trim();
+  if (!s) return null;
+  const marks = [];
+  let cursor = 0;
+  for (let i = 0; i < 26; i++){
+    const L = OPTKEY[i];
+    const re = new RegExp("(^|[\\s；;。、,，：:（()）\\n])" + L + "\\s*[.、．)）]\\s*", "g");
+    re.lastIndex = cursor;
+    const m = re.exec(s);
+    if (!m) break;
+    if (m.index + m[0].length >= s.length) break;
+    marks.push({ start: m.index + m[1].length, contentStart: re.lastIndex });
+    cursor = re.lastIndex;
+  }
+  if (marks.length < 2) return null;
+  const stem = s.slice(0, marks[0].start).trim();
+  if (!allowNoStem && !stem) return null;
+  const opts = [];
+  for (let i = 0; i < marks.length; i++){
+    const end = i + 1 < marks.length ? marks[i + 1].start : s.length;
+    opts.push(s.slice(marks[i].contentStart, end).trim().replace(/[\s；;]+$/, ""));
+  }
+  if (opts.some(o => !o)) return null;
+  return { stem: stem, opts: opts, empty: !stem };
 }
 
 function parseAnswer(raw, pairs){
